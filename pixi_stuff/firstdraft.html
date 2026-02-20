@@ -52,13 +52,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
 <script>
 // ─── Constants ───────────────────────────────────────────────────────────────
-const W = 1200, H = 1200;
+const W = 1200, H = 800;
 const WALL_THICKNESS = 8;
 const BALL_RADIUS = 10;
-const PLAYER_ORBIT_RADIUS = 100;
+const PLAYER_ORBIT_RADIUS_X = 140; // horizontal radius
+const PLAYER_ORBIT_RADIUS_Y = 60;  // vertical radius
 const PLAYER_ORBIT_SPEED = 0.05; // radians per frame at full speed
-const TRIANGLE_SIZE = 22; // half-size / scale
-const GOAL_RADIUS = 24;
+const TRIANGLE_SIZE = 24; // half-size / scale
+const GOAL_RADIUS_X = 80; // horizontal radius
+const GOAL_RADIUS_Y = 20; // vertical radius
 const STARTING_POINTS = 5;
 
 // ─── Pixi App ─────────────────────────────────────────────────────────────────
@@ -142,7 +144,8 @@ class Goal {
     this.x = x; this.y = y;
     this.player = playerRef;
     this.points = STARTING_POINTS;
-    this.radius = GOAL_RADIUS;
+    this.radiusX = GOAL_RADIUS_X;
+    this.radiusY = GOAL_RADIUS_Y;
     this.flashTimer = 0;
 
     this.gfx = new PIXI.Graphics();
@@ -165,16 +168,16 @@ class Goal {
     const ringColor = flash ? 0xff6677 : 0x00ffe7;
     const alpha     = flash ? 0.9 : 0.5;
 
-    // Pulsing rings
+    // Pulsing elliptical rings
     g.lineStyle(1.5, ringColor, alpha * 0.5);
-    g.drawCircle(this.x, this.y, this.radius + 8);
+    g.drawEllipse(this.x, this.y, this.radiusX + 12, this.radiusY + 6);
     g.lineStyle(1, ringColor, alpha * 0.25);
-    g.drawCircle(this.x, this.y, this.radius + 16);
+    g.drawEllipse(this.x, this.y, this.radiusX + 24, this.radiusY + 12);
 
-    // Core fill
+    // Core fill (ellipse)
     g.lineStyle(2, ringColor, alpha);
     g.beginFill(baseColor, 0.7);
-    g.drawCircle(this.x, this.y, this.radius);
+    g.drawEllipse(this.x, this.y, this.radiusX, this.radiusY);
     g.endFill();
 
     this.label.x = this.x;
@@ -193,20 +196,28 @@ class Goal {
     this.draw();
   }
 
+
   checkBall(ball) {
-    const dx = ball.x - this.x, dy = ball.y - this.y;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    if (dist < this.radius + ball.radius) {
+    // Ellipse collision detection
+    const dx = ball.x - this.x;
+    const dy = ball.y - this.y;
+    const normalizedX = dx / this.radiusX;
+    const normalizedY = dy / this.radiusY;
+    const dist = Math.sqrt(normalizedX * normalizedX + normalizedY * normalizedY);
+    
+    if (dist < 1 + (ball.radius / Math.min(this.radiusX, this.radiusY))) {
       this.hit();
       // Bounce ball away from center
-      const nx = dx / dist, ny = dy / dist;
+      const nx = dx / Math.sqrt(dx*dx + dy*dy);
+      const ny = dy / Math.sqrt(dx*dx + dy*dy);
       const dot = ball.vx * nx + ball.vy * ny;
       ball.vx -= 2 * dot * nx;
       ball.vy -= 2 * dot * ny;
       // Push out
-      const overlap = (this.radius + ball.radius) - dist;
-      ball.x += nx * overlap;
-      ball.y += ny * overlap;
+      const pushDist = (Math.min(this.radiusX, this.radiusY) * (1 + ball.radius / Math.min(this.radiusX, this.radiusY))) * dist;
+      ball.x = this.x + nx * pushDist;
+      ball.y = this.y + ny * pushDist;
+      ball.nudge();
       return true;
     }
     return false;
@@ -219,14 +230,15 @@ class Player {
     this.cx = cx; // orbit center (= goal position)
     this.cy = cy;
     this.angle = -Math.PI / 2; // start at top
-    this.orbitRadius = PLAYER_ORBIT_RADIUS;
+    this.orbitRadiusX = PLAYER_ORBIT_RADIUS_X;
+    this.orbitRadiusY = PLAYER_ORBIT_RADIUS_Y;
     this.speed = 0;
     this.targetSpeed = 0;
     this.size = TRIANGLE_SIZE;
 
-    // Compute world position
-    this.x = cx + Math.cos(this.angle) * this.orbitRadius;
-    this.y = cy + Math.sin(this.angle) * this.orbitRadius;
+    // Compute world position on elliptical path
+    this.x = cx + Math.cos(this.angle) * this.orbitRadiusX;
+    this.y = cy + Math.sin(this.angle) * this.orbitRadiusY;
 
     this.gfx = new PIXI.Graphics();
     this.trailGfx = new PIXI.Graphics();
@@ -273,8 +285,8 @@ class Player {
     this.speed += (this.targetSpeed - this.speed) * 0.18;
     this.angle += this.speed;
 
-    this.x = this.cx + Math.cos(this.angle) * this.orbitRadius;
-    this.y = this.cy + Math.sin(this.angle) * this.orbitRadius;
+    this.x = this.cx + Math.cos(this.angle) * this.orbitRadiusX;
+    this.y = this.cy + Math.sin(this.angle) * this.orbitRadiusY;
 
     this.goal.update();
     this.draw();
@@ -285,9 +297,9 @@ class Player {
     g.clear();
     const verts = this.getTriangleVerts();
 
-    // Orbit path (faint)
+    // Orbit path (faint ellipse)
     g.lineStyle(0.5, 0x00ffe7, 0.08);
-    g.drawCircle(this.cx, this.cy, this.orbitRadius);
+    g.drawEllipse(this.cx, this.cy, this.orbitRadiusX, this.orbitRadiusY);
 
     // Triangle glow shadow
     g.lineStyle(6, 0x00ffe7, 0.08);
@@ -342,6 +354,7 @@ class Player {
           const newVel = reflect({ x: ball.vx, y: ball.vy }, n);
           ball.vx = newVel.x;
           ball.vy = newVel.y;
+          ball.nudge();
 
           // Push out of edge
           const overlap = ball.radius - result.dist;
@@ -356,13 +369,15 @@ class Player {
   }
 }
 
-// ─── Ball Class ───────────────────────────────────────────────────────────────
+// ─── ball Class ───────────────────────────────────────────────────────────────
 class Ball {
   constructor(x, y, vx, vy) {
     this.x = x; this.y = y;
     this.vx = vx; this.vy = vy;
     this.radius = BALL_RADIUS;
     this.speed = Math.sqrt(vx*vx + vy*vy); // maintain constant speed
+    this.baseSpeed = this.speed;
+    this.maxSpeed = 5;
 
     this.trail = [];
     this.maxTrail = 15;
@@ -372,8 +387,23 @@ class Ball {
     gameLayer.addChild(this.trailGfx, this.gfx);
   }
 
+  // rotate velocity by ±1 degree randomly
+  nudge() {
+    const deg = (Math.random() < 0.5 ? -1 : 1) * (Math.PI / 180);
+    const cos = Math.cos(deg), sin = Math.sin(deg);
+    const nx = this.vx * cos - this.vy * sin;
+    const ny = this.vx * sin + this.vy * cos;
+    this.vx = nx; this.vy = ny;
+  }
+
   update() {
-    // Move
+
+
+    // speed update logic (capped at max speed)
+    this.speed = Math.min(this.maxSpeed, this.speed + 0.0008);
+
+
+    // move
     this.x += this.vx;
     this.y += this.vy;
 
@@ -381,12 +411,12 @@ class Ball {
     const spd = Math.sqrt(this.vx**2 + this.vy**2);
     if (spd > 0) { this.vx = this.vx / spd * this.speed; this.vy = this.vy / spd * this.speed; }
 
-    // Wall bounce
+    // Wall bounce (w/nudge)
     const inner = WALL_THICKNESS;
-    if (this.x - this.radius < inner) { this.x = inner + this.radius; this.vx = Math.abs(this.vx); }
-    if (this.x + this.radius > W - inner) { this.x = W - inner - this.radius; this.vx = -Math.abs(this.vx); }
-    if (this.y - this.radius < inner) { this.y = inner + this.radius; this.vy = Math.abs(this.vy); }
-    if (this.y + this.radius > H - inner) { this.y = H - inner - this.radius; this.vy = -Math.abs(this.vy); }
+    if (this.x - this.radius < inner) { this.x = inner + this.radius; this.vx = Math.abs(this.vx); this.nudge(); }
+    if (this.x + this.radius > W - inner) { this.x = W - inner - this.radius; this.vx = -Math.abs(this.vx); this.nudge(); }
+    if (this.y - this.radius < inner) { this.y = inner + this.radius; this.vy = Math.abs(this.vy); this.nudge(); }
+    if (this.y + this.radius > H - inner) { this.y = H - inner - this.radius; this.vy = -Math.abs(this.vy); this.nudge(); }
 
     // Trail
     this.trail.push({ x: this.x, y: this.y });
