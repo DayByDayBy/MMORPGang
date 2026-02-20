@@ -365,7 +365,7 @@ class Ball {
     this.speed = Math.sqrt(vx*vx + vy*vy); // maintain constant speed
 
     this.trail = [];
-    this.maxTrail = 12;
+    this.maxTrail = 15;
 
     this.gfx = new PIXI.Graphics();
     this.trailGfx = new PIXI.Graphics();
@@ -440,7 +440,7 @@ const ball   = new Ball(
   3.2, 2.6
 );
 
-// ─── HUD ──────────────────────────────────────────────────────────────────────
+// ─── HUD/UI ──────────────────────────────────────────────────────────────────────
 const hudText = new PIXI.Text('', {
   fontFamily: 'Courier New',
   fontSize: 12,
@@ -451,7 +451,7 @@ hudText.x = WALL_THICKNESS + 8;
 hudText.y = WALL_THICKNESS + 8;
 uiLayer.addChild(hudText);
 
-// Game over text
+// game over text
 const gameOverText = new PIXI.Text('', {
   fontFamily: 'Courier New',
   fontSize: 28,
