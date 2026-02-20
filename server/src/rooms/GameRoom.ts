@@ -1,0 +1,288 @@
+import { Room, Client } from "colyseus";
+import { GameRoomState, PlayerSchema } from "../schema";
+import {
+  computeEdges,
+  getArenaConfig,
+  BALL_SPEED,
+  BALL_RADIUS,
+  DEFAULT_LIVES,
+  ARENA_RADIUS,
+  TICK_RATE,
+  PADDLE_WIDTH_RATIO,
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+} from "shared";
+import type { Edge, Vector2, ArenaConfig } from "shared";
+
+export class GameRoom extends Room<GameRoomState> {
+  state = new GameRoomState();
+  maxClients = MAX_PLAYERS;
+
+  private edges: Edge[] = [];
+  private arenaConfig!: ArenaConfig;
+  private ballRadius = BALL_RADIUS;
+  private prevPaddlePositions = new Map<string, number>();
+
+  messages = {
+    "paddle_input": (client: Client, data: { position: number }) => {
+      const player = this.state.players.get(client.sessionId);
+      if (player && !player.eliminated && this.state.phase === "playing") {
+        player.paddlePosition = Math.max(0, Math.min(1, data.position));
+      }
+    },
+
+    "player_ready": (client: Client) => {
+      const player = this.state.players.get(client.sessionId);
+      if (player && this.state.phase === "waiting") {
+        player.ready = !player.ready;
+        this.checkAllReady();
+      }
+    },
+  };
+
+  onCreate(options: { maxPlayers?: number }) {
+    const max = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, options.maxPlayers || 4));
+    this.state.maxPlayers = max;
+    this.maxClients = max;
+    console.log(`[GameRoom] Created with max ${max} players`);
+  }
+
+  onJoin(client: Client, options: { name?: string }) {
+    const idx = this.state.players.size;
+    const player = new PlayerSchema();
+    player.sessionId = client.sessionId;
+    player.name = options.name || `Player ${idx + 1}`;
+    player.colorIndex = idx;
+    player.lives = DEFAULT_LIVES;
+    player.paddlePosition = 0.5;
+
+    this.state.players.set(client.sessionId, player);
+    console.log(`[GameRoom] ${player.name} joined (${this.state.players.size}/${this.state.maxPlayers})`);
+  }
+
+  onLeave(client: Client, consented: boolean) {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+
+    console.log(`[GameRoom] ${player.name} left (consented: ${consented})`);
+
+    if (this.state.phase === "playing") {
+      player.eliminated = true;
+      player.lives = 0;
+      this.checkWinCondition();
+    } else {
+      this.state.players.delete(client.sessionId);
+    }
+  }
+
+  onDispose() {
+    console.log("[GameRoom] Disposed");
+  }
+
+  private checkAllReady() {
+    if (this.state.players.size < MIN_PLAYERS) return;
+
+    let allReady = true;
+    this.state.players.forEach((player) => {
+      if (!player.ready) allReady = false;
+    });
+
+    if (allReady) {
+      this.startGame();
+    }
+  }
+
+  private startGame() {
+    this.arenaConfig = getArenaConfig(this.state.players.size);
+    this.state.numSides = this.arenaConfig.numSides;
+    this.state.arenaRadius = ARENA_RADIUS;
+    this.state.phase = "playing";
+
+    this.edges = computeEdges(this.arenaConfig.numSides, this.state.arenaRadius);
+
+    let idx = 0;
+    this.state.players.forEach((player) => {
+      player.edgeIndex = this.arenaConfig.edgeAssignments[idx];
+      idx++;
+    });
+
+    this.resetBall();
+
+    console.log(`[GameRoom] Game started with ${this.state.players.size} players on ${this.arenaConfig.numSides}-sided arena`);
+    this.setSimulationInterval(() => this.gameLoop(), 1000 / TICK_RATE);
+  }
+
+  private gameLoop() {
+    if (this.state.phase !== "playing") return;
+
+    this.state.ball.x += this.state.ball.vx;
+    this.state.ball.y += this.state.ball.vy;
+
+    this.checkCollisions();
+
+    this.state.players.forEach((player, id) => {
+      this.prevPaddlePositions.set(id, player.paddlePosition);
+    });
+  }
+
+  private resetBall() {
+    this.state.ball.x = 0;
+    this.state.ball.y = 0;
+
+    const alive: PlayerSchema[] = [];
+    this.state.players.forEach((p) => { if (!p.eliminated) alive.push(p); });
+
+    if (alive.length > 0) {
+      const target = alive[Math.floor(Math.random() * alive.length)];
+      const edge = this.edges[target.edgeIndex];
+      const mx = edge.midpoint.x;
+      const my = edge.midpoint.y;
+      const dist = Math.sqrt(mx * mx + my * my) || 1;
+      this.state.ball.vx = (mx / dist) * BALL_SPEED;
+      this.state.ball.vy = (my / dist) * BALL_SPEED;
+    } else {
+      const angle = Math.random() * Math.PI * 2;
+      this.state.ball.vx = Math.cos(angle) * BALL_SPEED;
+      this.state.ball.vy = Math.sin(angle) * BALL_SPEED;
+    }
+  }
+
+  private checkCollisions() {
+    const playersByEdge = this.getPlayersByEdge();
+
+    for (let i = 0; i < this.edges.length; i++) {
+      const edge = this.edges[i];
+      const player = playersByEdge.get(i);
+
+      if (!player || player.eliminated) {
+        if (this.ballNearLineSegment(edge.start, edge.end)) {
+          this.reflectBall(edge.normal);
+          this.pushBallIn(edge);
+        }
+        continue;
+      }
+
+      const paddleEndpoints = this.getPaddleEndpoints(player, edge);
+      if (this.ballNearLineSegment(paddleEndpoints.start, paddleEndpoints.end)) {
+        this.reflectBall(edge.normal);
+        this.applyPaddleSpin(player, edge);
+        this.pushBallIn(edge);
+        continue;
+      }
+
+      if (this.ballPassedThroughEdge(edge)) {
+        player.lives--;
+        this.broadcast("player_scored", { scoredOnId: player.sessionId });
+
+        if (player.lives <= 0) {
+          player.eliminated = true;
+          this.checkWinCondition();
+        }
+        this.resetBall();
+        break;
+      }
+    }
+  }
+
+  private getPlayersByEdge(): Map<number, PlayerSchema> {
+    const result = new Map<number, PlayerSchema>();
+    this.state.players.forEach((player) => {
+      result.set(player.edgeIndex, player);
+    });
+    return result;
+  }
+
+  private getPaddleEndpoints(player: PlayerSchema, edge: Edge) {
+    const t = player.paddlePosition;
+    const cx = edge.start.x + (edge.end.x - edge.start.x) * t;
+    const cy = edge.start.y + (edge.end.y - edge.start.y) * t;
+
+    const halfLen = (edge.length * PADDLE_WIDTH_RATIO) / 2;
+    const cos = Math.cos(edge.angle);
+    const sin = Math.sin(edge.angle);
+
+    return {
+      start: { x: cx - cos * halfLen, y: cy - sin * halfLen },
+      end: { x: cx + cos * halfLen, y: cy + sin * halfLen },
+    };
+  }
+
+  private ballNearLineSegment(a: Vector2, b: Vector2): boolean {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const lenSq = dx * dx + dy * dy;
+    let t = ((this.state.ball.x - a.x) * dx + (this.state.ball.y - a.y) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+
+    const closestX = a.x + t * dx;
+    const closestY = a.y + t * dy;
+    const distSq =
+      (this.state.ball.x - closestX) ** 2 + (this.state.ball.y - closestY) ** 2;
+
+    return distSq <= (this.ballRadius + 4) ** 2;
+  }
+
+  private ballPassedThroughEdge(edge: Edge): boolean {
+    const rel = {
+      x: this.state.ball.x - edge.start.x,
+      y: this.state.ball.y - edge.start.y,
+    };
+    const dot = rel.x * edge.normal.x + rel.y * edge.normal.y;
+
+    if (dot > this.ballRadius) {
+      const edgeDx = edge.end.x - edge.start.x;
+      const edgeDy = edge.end.y - edge.start.y;
+      const proj = (rel.x * edgeDx + rel.y * edgeDy) / edge.length;
+      return proj >= -this.ballRadius && proj <= edge.length + this.ballRadius;
+    }
+    return false;
+  }
+
+  private reflectBall(normal: Vector2) {
+    const dot = this.state.ball.vx * normal.x + this.state.ball.vy * normal.y;
+    this.state.ball.vx -= 2 * dot * normal.x;
+    this.state.ball.vy -= 2 * dot * normal.y;
+
+    const speedUp = 1.02;
+    this.state.ball.vx *= speedUp;
+    this.state.ball.vy *= speedUp;
+  }
+
+  private applyPaddleSpin(player: PlayerSchema, edge: Edge) {
+    const prev = this.prevPaddlePositions.get(player.sessionId) ?? player.paddlePosition;
+    const velocity_t = player.paddlePosition - prev;
+    const speed = velocity_t * edge.length;
+    const influence = 0.6;
+    this.state.ball.vx += Math.cos(edge.angle) * speed * influence;
+    this.state.ball.vy += Math.sin(edge.angle) * speed * influence;
+  }
+
+  private pushBallIn(edge: { normal: Vector2 }) {
+    this.state.ball.x += edge.normal.x * -2;
+    this.state.ball.y += edge.normal.y * -2;
+  }
+
+  private checkWinCondition() {
+    let aliveCount = 0;
+    let lastAlive: PlayerSchema | null = null;
+
+    this.state.players.forEach((player) => {
+      if (!player.eliminated) {
+        aliveCount++;
+        lastAlive = player;
+      }
+    });
+
+    if (aliveCount <= 1) {
+      this.state.phase = "ended";
+      this.state.winnerId = lastAlive?.sessionId ?? "";
+      this.state.winnerName = lastAlive?.name ?? "Nobody";
+      console.log(`[GameRoom] Game over — ${this.state.winnerName} wins!`);
+
+      this.broadcast("game_over", {
+        winnerId: this.state.winnerId,
+        winnerName: this.state.winnerName,
+      });
+    }
+  }
+}

@@ -1,0 +1,196 @@
+import { Application, Container, Text, TextStyle } from "pixi.js";
+import { PLAYER_COLORS, ARENA_RADIUS, computeEdges } from "shared";
+import type { Room } from "@colyseus/sdk";
+import { Arena } from "./Arena";
+import { Paddle } from "./Paddle";
+import { Ball } from "./Ball";
+
+interface RemotePlayer {
+  sessionId: string;
+  name: string;
+  colorIndex: number;
+  edgeIndex: number;
+  lives: number;
+  eliminated: boolean;
+  paddle: Paddle;
+}
+
+export class OnlineGame {
+  private app: Application;
+  private room: Room;
+  private arena!: Arena;
+  private ball!: Ball;
+  private players = new Map<string, RemotePlayer>();
+  private world = new Container();
+  private hud = new Container();
+  private hudTexts: Text[] = [];
+  private keys = new Set<string>();
+  private onGameOver?: (winnerName: string) => void;
+  private destroyed = false;
+
+  constructor(app: Application, room: Room) {
+    this.app = app;
+    this.room = room;
+  }
+
+  async init(onGameOver: (winnerName: string) => void) {
+    this.onGameOver = onGameOver;
+    this.app.stage.addChild(this.world);
+    this.app.stage.addChild(this.hud);
+
+    this.world.x = this.app.screen.width / 2;
+    this.world.y = this.app.screen.height / 2;
+
+    const state = this.room.state;
+    const numSides = state.numSides as number;
+    const serverRadius = state.arenaRadius as number;
+
+    const radius = Math.min(
+      serverRadius || ARENA_RADIUS,
+      Math.min(this.app.screen.width, this.app.screen.height) * 0.38,
+    );
+
+    const playerCount = numSides; // arena sides == numSides from server
+    this.arena = new Arena(playerCount, radius);
+    this.world.addChild(this.arena);
+
+    this.ball = new Ball();
+    this.world.addChild(this.ball);
+
+    state.players.forEach((p: any, sessionId: string) => {
+      this.addPlayer(sessionId, p);
+    });
+
+    this.buildHud();
+
+    this.room.onStateChange(() => {
+      if (this.destroyed) return;
+      this.syncState();
+    });
+
+    this.room.onMessage("game_over", (data: { winnerId: string; winnerName: string }) => {
+      this.onGameOver?.(data.winnerName);
+    });
+
+    window.addEventListener("keydown", this.onKeyDown);
+    window.addEventListener("keyup", this.onKeyUp);
+
+    this.app.ticker.add(this.renderLoop);
+  }
+
+  private addPlayer(sessionId: string, p: any) {
+    const edgeIdx = p.edgeIndex as number;
+    const colorIdx = p.colorIndex as number;
+    const paddle = new Paddle(edgeIdx, colorIdx);
+    paddle.setEdge(this.arena.edges[edgeIdx]);
+    paddle.position_t = p.paddlePosition;
+    paddle.updatePosition();
+    this.world.addChild(paddle);
+
+    this.players.set(sessionId, {
+      sessionId,
+      name: p.name,
+      colorIndex: colorIdx,
+      edgeIndex: edgeIdx,
+      lives: p.lives,
+      eliminated: p.eliminated,
+      paddle,
+    });
+  }
+
+  private syncState() {
+    const state = this.room.state;
+
+    this.ball.x = state.ball.x;
+    this.ball.y = state.ball.y;
+
+    state.players.forEach((p: any, sessionId: string) => {
+      const rp = this.players.get(sessionId);
+      if (!rp) return;
+
+      rp.lives = p.lives;
+      rp.eliminated = p.eliminated;
+      rp.paddle.position_t = p.paddlePosition;
+      rp.paddle.updatePosition();
+      rp.paddle.visible = !p.eliminated;
+    });
+
+    this.updateHud();
+  }
+
+  private onKeyDown = (e: KeyboardEvent) => this.keys.add(e.key.toLowerCase());
+  private onKeyUp = (e: KeyboardEvent) => this.keys.delete(e.key.toLowerCase());
+
+  private renderLoop = () => {
+    if (this.destroyed) return;
+    this.handleInput();
+  };
+
+  private handleInput() {
+    const me = this.players.get(this.room.sessionId);
+    if (!me || me.eliminated) return;
+
+    const speed = 0.02;
+    let moved = false;
+
+    if (this.keys.has("a") || this.keys.has("arrowleft")) {
+      me.paddle.move(-speed);
+      moved = true;
+    }
+    if (this.keys.has("d") || this.keys.has("arrowright")) {
+      me.paddle.move(speed);
+      moved = true;
+    }
+
+    if (moved) {
+      this.room.send("paddle_input", { position: me.paddle.position_t });
+    }
+  }
+
+  private buildHud() {
+    const style = new TextStyle({
+      fontFamily: "Segoe UI, system-ui, sans-serif",
+      fontSize: 14,
+      fontWeight: "bold",
+    });
+
+    let i = 0;
+    for (const [, rp] of this.players) {
+      const label = rp.sessionId === this.room.sessionId
+        ? `${rp.name} (you)`
+        : rp.name;
+
+      const text = new Text({
+        text: `${label}: ${"♥".repeat(rp.lives)}`,
+        style: { ...style, fill: PLAYER_COLORS[rp.colorIndex % PLAYER_COLORS.length] },
+      });
+      text.x = 16;
+      text.y = 16 + i * 24;
+      this.hud.addChild(text);
+      this.hudTexts.push(text);
+      i++;
+    }
+  }
+
+  private updateHud() {
+    let i = 0;
+    for (const [, rp] of this.players) {
+      if (i >= this.hudTexts.length) break;
+      const label = rp.sessionId === this.room.sessionId
+        ? `${rp.name} (you)`
+        : rp.name;
+      this.hudTexts[i].text = `${label}: ${rp.eliminated ? "OUT" : "♥".repeat(rp.lives)}`;
+      i++;
+    }
+  }
+
+  destroy() {
+    this.destroyed = true;
+    this.app.ticker.remove(this.renderLoop);
+    window.removeEventListener("keydown", this.onKeyDown);
+    window.removeEventListener("keyup", this.onKeyUp);
+    this.world.destroy({ children: true });
+    this.hud.destroy({ children: true });
+    this.room.removeAllListeners();
+  }
+}
