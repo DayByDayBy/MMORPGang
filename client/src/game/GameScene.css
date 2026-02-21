@@ -60,3 +60,21 @@
   margin: 0;
   color: #7fdbff;
 }
+
+.game__eliminated-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.game__spectate-btn {
+  padding: 8px 20px;
+  border: 1px solid rgba(127, 219, 255, 0.4);
+  background: rgba(127, 219, 255, 0.1);
+  color: #7fdbff;
+  cursor: pointer;
+}
+
+.game__spectate-btn:hover {
+  background: rgba(127, 219, 255, 0.2);
+}

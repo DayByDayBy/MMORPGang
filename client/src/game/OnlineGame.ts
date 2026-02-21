@@ -28,6 +28,8 @@ export class OnlineGame {
   private hudTexts: Text[] = [];
   private keys = new Set<string>();
   private onGameOver?: (winnerName: string) => void;
+  private onEliminated?: () => void;
+  private localEliminated = false;
   private destroyed = false;
   private audio = new AudioManager();
   private playerSounds = new Map<string, AudioBuffer>();
@@ -38,8 +40,9 @@ export class OnlineGame {
     this.room = room;
   }
 
-  async init(onGameOver: (winnerName: string) => void) {
+  async init(onGameOver: (winnerName: string) => void, onEliminated?: () => void) {
     this.onGameOver = onGameOver;
+    this.onEliminated = onEliminated;
     this.app.stage.addChild(this.world);
     this.app.stage.addChild(this.hud);
 
@@ -76,7 +79,7 @@ export class OnlineGame {
       const isMe = data.winnerId === this.room.sessionId;
       if (isMe) {
         this.audio.playWin();
-      } else {
+      } else if (!this.localEliminated) {
         this.audio.playGameEnd();
       }
       this.onGameOver?.(data.winnerName);
@@ -141,6 +144,17 @@ export class OnlineGame {
     });
 
     this.updateHud();
+
+    if (!this.localEliminated) {
+      const me = this.players.get(this.room.sessionId);
+      if (me?.eliminated) {
+        this.localEliminated = true;
+        if (state.phase === "playing") {
+          this.audio.playGameEnd();
+          this.onEliminated?.();
+        }
+      }
+    }
   }
 
   private onKeyDown = (e: KeyboardEvent) => this.keys.add(e.key.toLowerCase());

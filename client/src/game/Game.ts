@@ -33,7 +33,7 @@ export class Game {
   private hudTexts: Text[] = [];
   private keys = new Set<string>();
   private running = false;
-  private onGameOver?: (winnerName: string) => void;
+  private onGameOver?: (winnerName: string | null) => void;
   private ballHitDistSq = 0;
   private hudDirty = true;
   private audio = new AudioManager();
@@ -42,7 +42,7 @@ export class Game {
     this.app = app;
   }
 
-  async init(playerCount: number, playerName: string, onGameOver: (winnerName: string) => void) {
+  async init(playerCount: number, playerName: string, onGameOver: (winnerName: string | null) => void) {
     this.onGameOver = onGameOver;
     this.app.stage.addChild(this.world);
     this.app.stage.addChild(this.hud);
@@ -207,6 +207,15 @@ export class Game {
         if (player.lives <= 0) {
           player.eliminated = true;
           player.paddle.visible = false;
+
+          if (player === this.players[0]) {
+            this.running = false;
+            this.audio.stopSoundtrack();
+            this.audio.playGameEnd();
+            this.onGameOver?.(null);
+            return;
+          }
+
           this.checkWinCondition();
         }
         this.launchBall();

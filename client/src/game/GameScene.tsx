@@ -20,9 +20,15 @@ interface OnlineGameProps {
 
 type GameSceneProps = LocalGameProps | OnlineGameProps;
 
+type EndState =
+  | { kind: "win"; name: string }
+  | { kind: "loss" }
+  | { kind: "eliminated" }
+  | null;
+
 export const GameScene = (props: GameSceneProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [winner, setWinner] = useState<string | null>(null);
+  const [endState, setEndState] = useState<EndState>(null);
 
   const onExit = props.onExit;
   const mode = props.mode;
@@ -37,7 +43,7 @@ export const GameScene = (props: GameSceneProps) => {
     const app = new Application();
     let game: Game | OnlineGame | null = null;
 
-    setWinner(null);
+    setEndState(null);
 
     const setup = async () => {
       const el = containerRef.current!;
@@ -54,10 +60,15 @@ export const GameScene = (props: GameSceneProps) => {
 
       if (mode === "local") {
         game = new Game(app);
-        await game.init(playerCount, playerName, setWinner);
+        await game.init(playerCount, playerName, (winnerName) => {
+          setEndState(winnerName ? { kind: "win", name: winnerName } : { kind: "loss" });
+        });
       } else {
         game = new OnlineGame(app, room!);
-        await game.init(setWinner);
+        await game.init(
+          (winnerName) => setEndState({ kind: "win", name: winnerName }),
+          () => setEndState({ kind: "eliminated" }),
+        );
       }
     };
 
@@ -73,6 +84,11 @@ export const GameScene = (props: GameSceneProps) => {
     };
   }, [mode, playerCount, playerName, room]);
 
+  const handleExit = () => {
+    setEndState(null);
+    onExit();
+  };
+
   return (
     <div className="game">
       <div ref={containerRef} className="game__canvas" />
@@ -84,15 +100,43 @@ export const GameScene = (props: GameSceneProps) => {
         </button>
       </div>
 
-      {winner && (
+      {endState?.kind === "eliminated" && (
+        <div className="game__overlay">
+          <div className="game__win-card">
+            <h2 className="game__win-title">You were eliminated!</h2>
+            <div className="game__eliminated-actions">
+              <button
+                onClick={() => setEndState(null)}
+                className="game__spectate-btn"
+              >
+                Spectate
+              </button>
+              <button onClick={handleExit} className="game__exit-btn">
+                Exit Game
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {endState?.kind === "loss" && (
         <div className="game__overlay">
           <div className="game__win-card">
             <h2 className="game__win-title">Game Over!</h2>
-            <p className="game__win-text">{winner} wins!</p>
-            <button
-              onClick={() => { setWinner(null); onExit(); }}
-              className="game__exit-btn"
-            >
+            <p className="game__win-text">You lost!</p>
+            <button onClick={handleExit} className="game__exit-btn">
+              Back to Lobby
+            </button>
+          </div>
+        </div>
+      )}
+
+      {endState?.kind === "win" && (
+        <div className="game__overlay">
+          <div className="game__win-card">
+            <h2 className="game__win-title">Game Over!</h2>
+            <p className="game__win-text">{endState.name} wins!</p>
+            <button onClick={handleExit} className="game__exit-btn">
               Back to Lobby
             </button>
           </div>
