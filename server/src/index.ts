@@ -2,6 +2,7 @@ import express from 'express'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 import { TICK_RATE, GOAL_RING_RADIUS } from 'shared'
+import type { ClientToServerEvents, ServerToClientEvents } from 'shared'
 import { Ball } from './game/Ball'
 import { GameStateManager } from './game/GameState'
 import { checkPaddleCollision, checkGoalCollision } from './game/Physics'
@@ -10,7 +11,7 @@ const DT = 1 / TICK_RATE  // seconds per tick
 
 const app = express()
 const httpServer = createServer(app)
-const io = new Server(httpServer, {
+const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: { origin: '*' }
 })
 

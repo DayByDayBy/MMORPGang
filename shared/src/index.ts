@@ -75,6 +75,23 @@ export interface PlayerInput {
   right: boolean
 }
 
+// ─── Lobby ─────────────────────────────────────────────────────────────────────
+export interface LobbyState {
+  players: { id: string; name: string }[]
+}
+
+// ─── Socket event contracts ────────────────────────────────────────────────────
+export interface ServerToClientEvents {
+  gameState:  (state: GameState) => void
+  lobbyState: (state: LobbyState) => void
+}
+
+export interface ClientToServerEvents {
+  playerInput: (input: PlayerInput) => void
+  joinGame:    (name: string) => void
+  startGame:   () => void
+}
+
 // ─── Math utilities (pure, no pixi dependency) ────────────────────────────────
 export function reflect(vel: Vec2, normal: Vec2): Vec2 {
   const len = Math.sqrt(normal.x ** 2 + normal.y ** 2)

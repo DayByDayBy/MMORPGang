@@ -74,6 +74,9 @@ importers:
       socket.io:
         specifier: ^4.8.3
         version: 4.8.3
+      tsc:
+        specifier: 2.0.4
+        version: 2.0.4
     devDependencies:
       '@types/express':
         specifier: ^5.0.6
@@ -1577,6 +1580,10 @@ packages:
         optional: true
       '@swc/wasm':
         optional: true
+
+  tsc@2.0.4:
+    resolution: {integrity: sha512-fzoSieZI5KKJVBYGvwbVZs/J5za84f2lSTLPYf6AGiIf43tZ3GNrI1QzTLcjtyDDP4aLxd46RTZq1nQxe7+k5Q==}
+    hasBin: true
 
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
@@ -3220,6 +3227,8 @@ snapshots:
       yn: 3.1.1
     optionalDependencies:
       '@swc/core': 1.15.11
+
+  tsc@2.0.4: {}
 
   type-check@0.4.0:
     dependencies:
