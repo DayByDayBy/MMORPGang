@@ -8,6 +8,7 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
+    "shared": "*",
     "colyseus": "^0.17.8",
     "@colyseus/playground": "^0.17.0"
   },
