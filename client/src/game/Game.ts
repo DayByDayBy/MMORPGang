@@ -26,13 +26,15 @@ export class Game {
   private arena!: Arena;
   private ball!: Ball;
   private players: PlayerState[] = [];
-  private edgeToPlayer = new Map<number, PlayerState>();
+  private playersByEdge = new Map<number, PlayerState>();
   private world = new Container();
   private hud = new Container();
   private hudTexts: Text[] = [];
   private keys = new Set<string>();
   private running = false;
   private onGameOver?: (winnerName: string) => void;
+  private ballHitDistSq = 0;
+  private hudDirty = true;
 
   constructor(app: Application) {
     this.app = app;
@@ -56,6 +58,7 @@ export class Game {
 
     this.ball = new Ball();
     this.world.addChild(this.ball);
+    this.ballHitDistSq = (this.ball.radius + 4) ** 2;
 
     const { edgeAssignments } = this.arena.config;
 
@@ -79,7 +82,7 @@ export class Game {
         },
       };
       this.players.push(player);
-      this.edgeToPlayer.set(edgeIdx, player);
+      this.playersByEdge.set(edgeIdx, player);
     }
 
     window.addEventListener("keydown", this.onKeyDown);
@@ -100,7 +103,10 @@ export class Game {
     this.ball.update();
     this.checkCollisions();
     this.checkOutOfBounds();
-    this.updateHud();
+    if (this.hudDirty) {
+      this.updateHud();
+      this.hudDirty = false;
+    }
   };
 
   private checkOutOfBounds() {
@@ -169,31 +175,32 @@ export class Game {
   private checkCollisions() {
     for (let i = 0; i < this.arena.edges.length; i++) {
       const edge = this.arena.edges[i];
-      const player = this.edgeToPlayer.get(i);
+      const player = this.playersByEdge.get(i);
 
       if (!player || player.eliminated) {
         // wall edge — always reflect
-        if (this.ballNearSegment(edge.start, edge.end)) {
+        if (this.ballNearLineSegment(edge.start, edge.end)) {
           this.ball.reflect(edge.normal);
-          this.nudgeBallInward(edge);
+          this.pushBallIn(edge);
         }
         continue;
       }
 
-      const endpoints = player.paddle.getPaddleEndpoints();
-      if (this.ballNearSegment(endpoints.start, endpoints.end)) {
+      const endpoints = player.paddle.getEndpoints();
+      if (this.ballNearLineSegment(endpoints.start, endpoints.end)) {
         this.ball.reflect(edge.normal);
         this.ball.addSpin(player.paddle.getTangentVelocity());
-        this.nudgeBallInward(edge);
+        this.pushBallIn(edge);
         continue;
       }
 
-      if (this.ballPassedEdge(edge)) {
+      if (this.ballPassedThroughEdge(edge)) {
         player.lives--;
+        this.hudDirty = true;
         if (player.lives <= 0) {
           player.eliminated = true;
           player.paddle.visible = false;
-          this.checkWin();
+          this.checkWinCondition();
         }
         this.launchBall();
         break;
@@ -201,7 +208,7 @@ export class Game {
     }
   }
 
-  private ballNearSegment(a: Vector2, b: Vector2): boolean {
+  private ballNearLineSegment(a: Vector2, b: Vector2): boolean {
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const lenSq = dx * dx + dy * dy;
@@ -211,10 +218,10 @@ export class Game {
     const distSq =
       (this.ball.x - (a.x + t * dx)) ** 2 +
       (this.ball.y - (a.y + t * dy)) ** 2;
-    return distSq <= (this.ball.radius + 4) ** 2;
+    return distSq <= this.ballHitDistSq;
   }
 
-  private ballPassedEdge(edge: Edge): boolean {
+  private ballPassedThroughEdge(edge: Edge): boolean {
     const relX = this.ball.x - edge.start.x;
     const relY = this.ball.y - edge.start.y;
     const dot = relX * edge.normal.x + relY * edge.normal.y;
@@ -226,23 +233,37 @@ export class Game {
     return proj >= -this.ball.radius && proj <= edge.length + this.ball.radius;
   }
 
-  private nudgeBallInward(edge: Edge) {
+  private pushBallIn(edge: Edge) {
     this.ball.x -= edge.normal.x * 2;
     this.ball.y -= edge.normal.y * 2;
   }
 
   private launchBall() {
-    const alive = this.players.filter((p) => !p.eliminated);
-    const target = alive[Math.floor(Math.random() * alive.length)];
-    const edge = this.arena.edges[target.edgeIndex];
-    this.ball.launch(edge.midpoint);
+    let aliveCount = 0;
+    let picked: PlayerState | undefined;
+    for (let i = 0; i < this.players.length; i++) {
+      if (this.players[i].eliminated) continue;
+      aliveCount++;
+      if (Math.random() < 1 / aliveCount) picked = this.players[i];
+    }
+    if (picked) {
+      const edge = this.arena.edges[picked.edgeIndex];
+      this.ball.launch(edge.midpoint);
+    }
   }
 
-  private checkWin() {
-    const alive = this.players.filter((p) => !p.eliminated);
-    if (alive.length <= 1) {
+  private checkWinCondition() {
+    let aliveCount = 0;
+    let lastAlive: PlayerState | undefined;
+    for (let i = 0; i < this.players.length; i++) {
+      if (!this.players[i].eliminated) {
+        aliveCount++;
+        lastAlive = this.players[i];
+      }
+    }
+    if (aliveCount <= 1) {
       this.running = false;
-      this.onGameOver?.(alive[0]?.name ?? "Nobody");
+      this.onGameOver?.(lastAlive?.name ?? "Nobody");
     }
   }
 

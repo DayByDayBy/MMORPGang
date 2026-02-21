@@ -11,6 +11,11 @@ export class Paddle extends Container {
 
   private gfx = new Graphics();
   private edge!: Edge;
+  private endpoints = {
+    start: { x: 0, y: 0 },
+    end: { x: 0, y: 0 },
+  };
+  private tangentVelocity = { x: 0, y: 0 };
 
   constructor(edgeIndex: number, colorIndex: number, widthRatio = PADDLE_WIDTH_RATIO) {
     super();
@@ -60,22 +65,26 @@ export class Paddle extends Container {
     this.updatePosition();
   }
 
-  public getTangentVelocity(): { x: number; y: number } {
-    if (!this.edge) return { x: 0, y: 0 };
+  public getTangentVelocity(): Readonly<{ x: number; y: number }> {
+    if (!this.edge) {
+      this.tangentVelocity.x = 0;
+      this.tangentVelocity.y = 0;
+      return this.tangentVelocity;
+    }
     const speed = this.velocity_t * this.edge.length;
-    return {
-      x: Math.cos(this.edge.angle) * speed,
-      y: Math.sin(this.edge.angle) * speed,
-    };
+    this.tangentVelocity.x = Math.cos(this.edge.angle) * speed;
+    this.tangentVelocity.y = Math.sin(this.edge.angle) * speed;
+    return this.tangentVelocity;
   }
 
-  public getPaddleEndpoints(): { start: { x: number; y: number }; end: { x: number; y: number } } {
+  public getEndpoints() {
     const halfLen = (this.edge.length * this.widthRatio) / 2;
     const cos = Math.cos(this.edge.angle);
     const sin = Math.sin(this.edge.angle);
-    return {
-      start: { x: this.x - cos * halfLen, y: this.y - sin * halfLen },
-      end: { x: this.x + cos * halfLen, y: this.y + sin * halfLen },
-    };
+    this.endpoints.start.x = this.x - cos * halfLen;
+    this.endpoints.start.y = this.y - sin * halfLen;
+    this.endpoints.end.x = this.x + cos * halfLen;
+    this.endpoints.end.y = this.y + sin * halfLen;
+    return this.endpoints;
   }
 }

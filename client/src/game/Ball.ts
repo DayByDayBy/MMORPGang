@@ -59,10 +59,8 @@ export class Ball extends Container {
     this.x = 0;
     this.y = 0;
     const dist = Math.sqrt(target.x * target.x + target.y * target.y) || 1;
-    this.velocity = {
-      x: (target.x / dist) * BALL_SPEED,
-      y: (target.y / dist) * BALL_SPEED,
-    };
+    this.velocity.x = (target.x / dist) * BALL_SPEED;
+    this.velocity.y = (target.y / dist) * BALL_SPEED;
   }
 
   public syncState(serverBall: { x: number; y: number }) {
