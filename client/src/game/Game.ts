@@ -1,5 +1,5 @@
 import { Application, Container, Text, TextStyle, Ticker } from "pixi.js";
-import { DEFAULT_LIVES, PLAYER_COLORS, ARENA_RADIUS, ballNearSegment, ballPassedEdge } from "shared";
+import { DEFAULT_LIVES, PLAYER_COLORS, ARENA_RADIUS, PADDLE_SPEED, ballNearSegment, ballPassedEdge } from "shared";
 import type { Edge } from "shared";
 import { Arena } from "./Arena";
 import { Paddle } from "./Paddle";
@@ -78,7 +78,7 @@ export class Game {
         name: i === 0 ? playerName : `Bot ${i}`,
         ai: i === 0 ? undefined : {
           aggressiveness: 0.3 + Math.random() * 0.7,
-          speed: 0.02,
+          speed: PADDLE_SPEED,
           roamTarget: 0.5,
           roamTimer: 0,
         },
@@ -129,9 +129,8 @@ export class Game {
   private handleInput() {
     const player = this.players[0];
     if (player.eliminated) return;
-    const speed = 0.02;
-    if (this.keys.has("a") || this.keys.has("arrowleft")) player.paddle.move(-speed);
-    if (this.keys.has("d") || this.keys.has("arrowright")) player.paddle.move(speed);
+    if (this.keys.has("a") || this.keys.has("arrowleft")) player.paddle.move(-PADDLE_SPEED);
+    if (this.keys.has("d") || this.keys.has("arrowright")) player.paddle.move(PADDLE_SPEED);
   }
 
   private updateAI() {

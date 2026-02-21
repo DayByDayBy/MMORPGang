@@ -1,5 +1,5 @@
 import { Application, Container, Text, TextStyle } from "pixi.js";
-import { PLAYER_COLORS, ARENA_RADIUS } from "shared";
+import { PLAYER_COLORS, ARENA_RADIUS, PADDLE_SPEED } from "shared";
 import type { GameState, PlayerState } from "shared";
 import type { Room } from "@colyseus/sdk";
 import { SERVER_URL } from "../network/client";
@@ -169,15 +169,14 @@ export class OnlineGame {
     const me = this.players.get(this.room.sessionId);
     if (!me || me.eliminated) return;
 
-    const speed = 0.02;
     let moved = false;
 
     if (this.keys.has("a") || this.keys.has("arrowleft")) {
-      me.paddle.move(-speed);
+      me.paddle.move(-PADDLE_SPEED);
       moved = true;
     }
     if (this.keys.has("d") || this.keys.has("arrowright")) {
-      me.paddle.move(speed);
+      me.paddle.move(PADDLE_SPEED);
       moved = true;
     }
 

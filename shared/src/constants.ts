@@ -7,6 +7,7 @@ export const BALL_RADIUS = 8;
 export const BALL_SPEED = 5;
 export const MAX_BALL_SPEED = 14;
 export const PADDLE_WIDTH_RATIO = 0.35;
+export const PADDLE_SPEED = 0.02;
 export const MAX_CLIP_DURATION = 1.5;
 
 export const PLAYER_COLORS = [
