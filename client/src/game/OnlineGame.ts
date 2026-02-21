@@ -94,10 +94,6 @@ export class OnlineGame {
       this.playPaddleSound(data.sessionId);
     });
 
-    state.players.forEach((_p, sessionId) => {
-      this.fetchPlayerAudio(sessionId);
-    });
-
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
 
@@ -106,6 +102,10 @@ export class OnlineGame {
     await this.audio.init();
     await this.audio.resume();
     this.audio.startSoundtrack();
+
+    state.players.forEach((_p, sessionId) => {
+      this.fetchPlayerAudio(sessionId);
+    });
   }
 
   private addPlayer(sessionId: string, p: PlayerState) {
