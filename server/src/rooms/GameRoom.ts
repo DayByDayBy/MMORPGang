@@ -23,8 +23,14 @@ export class GameRoom extends Room<GameRoomState> {
   private edges: Edge[] = [];
   private arenaConfig!: ArenaConfig;
   private ballRadius = BALL_RADIUS;
+  private ballHitDistSq = (BALL_RADIUS + 4) ** 2;
   private prevPaddlePositions = new Map<string, number>();
   private audioSessionIds = new Set<string>();
+  private playersByEdge = new Map<number, PlayerSchema>();
+  private paddleEndpoints = {
+    start: { x: 0, y: 0 },
+    end: { x: 0, y: 0 },
+  };
 
   messages = {
     "paddle_input": (client: Client, data: { position: number }) => {
@@ -48,7 +54,7 @@ export class GameRoom extends Room<GameRoomState> {
     },
   };
 
-  onCreate() {
+  onCreate(_options: any) {
     this.state.maxPlayers = MAX_PLAYERS;
     this.maxClients = MAX_PLAYERS;
     console.log(`[GameRoom] Created (up to ${MAX_PLAYERS} players)`);
@@ -147,11 +153,16 @@ export class GameRoom extends Room<GameRoomState> {
     this.state.ball.x = 0;
     this.state.ball.y = 0;
 
-    const alive: PlayerSchema[] = [];
-    this.state.players.forEach((p) => { if (!p.eliminated) alive.push(p); });
+    let target: PlayerSchema | null = null;
+    let aliveCount = 0;
+    this.state.players.forEach((p) => {
+      if (!p.eliminated) {
+        aliveCount++;
+        if (Math.random() < 1 / aliveCount) target = p;
+      }
+    });
 
-    if (alive.length > 0) {
-      const target = alive[Math.floor(Math.random() * alive.length)];
+    if (target) {
       const edge = this.edges[target.edgeIndex];
       const mx = edge.midpoint.x;
       const my = edge.midpoint.y;
@@ -166,11 +177,11 @@ export class GameRoom extends Room<GameRoomState> {
   }
 
   private checkCollisions() {
-    const playersByEdge = this.getPlayersByEdge();
+    this.buildPlayersByEdge();
 
     for (let i = 0; i < this.edges.length; i++) {
       const edge = this.edges[i];
-      const player = playersByEdge.get(i);
+      const player = this.playersByEdge.get(i);
 
       if (!player || player.eliminated) {
         if (this.ballNearLineSegment(edge.start, edge.end)) {
@@ -203,12 +214,11 @@ export class GameRoom extends Room<GameRoomState> {
     }
   }
 
-  private getPlayersByEdge(): Map<number, PlayerSchema> {
-    const result = new Map<number, PlayerSchema>();
+  private buildPlayersByEdge() {
+    this.playersByEdge.clear();
     this.state.players.forEach((player) => {
-      result.set(player.edgeIndex, player);
+      this.playersByEdge.set(player.edgeIndex, player);
     });
-    return result;
   }
 
   private getPaddleEndpoints(player: PlayerSchema, edge: Edge) {
@@ -220,10 +230,11 @@ export class GameRoom extends Room<GameRoomState> {
     const cos = Math.cos(edge.angle);
     const sin = Math.sin(edge.angle);
 
-    return {
-      start: { x: cx - cos * halfLen, y: cy - sin * halfLen },
-      end: { x: cx + cos * halfLen, y: cy + sin * halfLen },
-    };
+    this.paddleEndpoints.start.x = cx - cos * halfLen;
+    this.paddleEndpoints.start.y = cy - sin * halfLen;
+    this.paddleEndpoints.end.x = cx + cos * halfLen;
+    this.paddleEndpoints.end.y = cy + sin * halfLen;
+    return this.paddleEndpoints;
   }
 
   private ballNearLineSegment(a: Vector2, b: Vector2): boolean {
@@ -238,20 +249,18 @@ export class GameRoom extends Room<GameRoomState> {
     const distSq =
       (this.state.ball.x - closestX) ** 2 + (this.state.ball.y - closestY) ** 2;
 
-    return distSq <= (this.ballRadius + 4) ** 2;
+    return distSq <= this.ballHitDistSq;
   }
 
   private ballPassedThroughEdge(edge: Edge): boolean {
-    const rel = {
-      x: this.state.ball.x - edge.start.x,
-      y: this.state.ball.y - edge.start.y,
-    };
-    const dot = rel.x * edge.normal.x + rel.y * edge.normal.y;
+    const relX = this.state.ball.x - edge.start.x;
+    const relY = this.state.ball.y - edge.start.y;
+    const dot = relX * edge.normal.x + relY * edge.normal.y;
 
     if (dot > this.ballRadius) {
       const edgeDx = edge.end.x - edge.start.x;
       const edgeDy = edge.end.y - edge.start.y;
-      const proj = (rel.x * edgeDx + rel.y * edgeDy) / edge.length;
+      const proj = (relX * edgeDx + relY * edgeDy) / edge.length;
       return proj >= -this.ballRadius && proj <= edge.length + this.ballRadius;
     }
     return false;
