@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Application } from "pixi.js";
+import type { GameState } from "shared";
 import type { Room } from "@colyseus/sdk";
 import { Game } from "./Game";
 import { OnlineGame } from "./OnlineGame";
@@ -14,7 +15,7 @@ interface LocalGameProps {
 
 interface OnlineGameProps {
   mode: "online";
-  room: Room;
+  room: Room<GameState>;
   onExit: () => void;
 }
 

@@ -1,5 +1,6 @@
 import { Application, Container, Text, TextStyle } from "pixi.js";
 import { PLAYER_COLORS, ARENA_RADIUS } from "shared";
+import type { GameState, PlayerState } from "shared";
 import type { Room } from "@colyseus/sdk";
 import { SERVER_URL } from "../network/client";
 import { Arena } from "./Arena";
@@ -19,7 +20,7 @@ interface RemotePlayer {
 
 export class OnlineGame {
   private app: Application;
-  private room: Room;
+  private room: Room<GameState>;
   private arena!: Arena;
   private ball!: Ball;
   private players = new Map<string, RemotePlayer>();
@@ -35,7 +36,7 @@ export class OnlineGame {
   private playerSounds = new Map<string, AudioBuffer>();
   private lastSentPaddlePosition = -1;
 
-  constructor(app: Application, room: Room) {
+  constructor(app: Application, room: Room<GameState>) {
     this.app = app;
     this.room = room;
   }
@@ -50,7 +51,7 @@ export class OnlineGame {
     this.world.y = this.app.screen.height / 2;
 
     const state = this.room.state;
-    const serverRadius = (state.arenaRadius as number) || ARENA_RADIUS;
+    const serverRadius = state.arenaRadius || ARENA_RADIUS;
 
     const playerCount = state.players.size;
     this.arena = new Arena(playerCount, serverRadius);
@@ -63,7 +64,7 @@ export class OnlineGame {
     this.ball = new Ball();
     this.world.addChild(this.ball);
 
-    state.players.forEach((p: any, sessionId: string) => {
+    state.players.forEach((p, sessionId) => {
       this.addPlayer(sessionId, p);
     });
 
@@ -93,7 +94,7 @@ export class OnlineGame {
       this.playPaddleSound(data.sessionId);
     });
 
-    state.players.forEach((_p: any, sessionId: string) => {
+    state.players.forEach((_p, sessionId) => {
       this.fetchPlayerAudio(sessionId);
     });
 
@@ -107,11 +108,9 @@ export class OnlineGame {
     this.audio.startSoundtrack();
   }
 
-  private addPlayer(sessionId: string, p: any) {
-    const edgeIdx = p.edgeIndex as number;
-    const colorIdx = p.colorIndex as number;
-    const paddle = new Paddle(edgeIdx, colorIdx);
-    paddle.setEdge(this.arena.edges[edgeIdx]);
+  private addPlayer(sessionId: string, p: PlayerState) {
+    const paddle = new Paddle(p.edgeIndex, p.colorIndex);
+    paddle.setEdge(this.arena.edges[p.edgeIndex]);
     paddle.position_t = p.paddlePosition;
     paddle.updatePosition();
     this.world.addChild(paddle);
@@ -119,8 +118,8 @@ export class OnlineGame {
     this.players.set(sessionId, {
       sessionId,
       name: p.name,
-      colorIndex: colorIdx,
-      edgeIndex: edgeIdx,
+      colorIndex: p.colorIndex,
+      edgeIndex: p.edgeIndex,
       lives: p.lives,
       eliminated: p.eliminated,
       paddle,
@@ -132,7 +131,7 @@ export class OnlineGame {
 
     this.ball.syncState(state.ball);
 
-    state.players.forEach((p: any, sessionId: string) => {
+    state.players.forEach((p, sessionId) => {
       const rp = this.players.get(sessionId);
       if (!rp) return;
 

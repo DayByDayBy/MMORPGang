@@ -1,11 +1,12 @@
 import { Schema, type, MapSchema } from "@colyseus/schema";
+import type { BallState, PlayerState, GameState } from "shared";
 
-export class BallSchema extends Schema {
+export class BallSchema extends Schema implements BallState {
   @type("float32") x: number = 0;
   @type("float32") y: number = 0;
 }
 
-export class PlayerSchema extends Schema {
+export class PlayerSchema extends Schema implements PlayerState {
   @type("string") sessionId: string = "";
   @type("string") name: string = "";
   @type("uint8") colorIndex: number = 0;
@@ -16,7 +17,7 @@ export class PlayerSchema extends Schema {
   @type("float32") paddlePosition: number = 0.5;
 }
 
-export class GameRoomState extends Schema {
+export class GameRoomState extends Schema implements GameState {
   @type("string") phase: string = "waiting";
   @type("string") winnerId: string = "";
   @type("string") winnerName: string = "";

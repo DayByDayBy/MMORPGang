@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { PLAYER_COLORS, MAX_PLAYERS } from "shared";
+import type { GameState } from "shared";
 import type { Room } from "@colyseus/sdk";
 import { AudioRecorder } from "./AudioRecorder";
 import { SERVER_URL } from "../network/client";
@@ -13,7 +14,7 @@ interface PlayerInfo {
 }
 
 interface WaitingRoomProps {
-  room: Room;
+  room: Room<GameState>;
   onGameStart: () => void;
   onLeave: () => void;
 }
@@ -27,7 +28,7 @@ export const WaitingRoom = ({ room, onGameStart, onLeave }: WaitingRoomProps) =>
       if (!room.state?.players) return;
 
       const list: PlayerInfo[] = [];
-      room.state.players.forEach((p: any, key: string) => {
+      room.state.players.forEach((p, key) => {
         list.push({
           sessionId: key,
           name: p.name,

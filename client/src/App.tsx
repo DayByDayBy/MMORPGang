@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import type { GameState } from "shared";
 import type { Room } from "@colyseus/sdk";
 import { Lobby } from "./lobby/Lobby";
 import { WaitingRoom } from "./lobby/WaitingRoom";
@@ -8,8 +9,8 @@ import { createRoom, joinRoom } from "./network/client";
 type AppState =
   | { screen: "lobby" }
   | { screen: "local"; playerName: string; playerCount: number }
-  | { screen: "waiting"; room: Room }
-  | { screen: "online"; room: Room };
+  | { screen: "waiting"; room: Room<GameState> }
+  | { screen: "online"; room: Room<GameState> };
 
 export const App = () => {
   const [state, setState] = useState<AppState>({ screen: "lobby" });
@@ -17,7 +18,7 @@ export const App = () => {
 
   const goLobby = useCallback(() => {
     if (state.screen === "waiting" || state.screen === "online") {
-      (state as any).room?.leave?.();
+      state.room.leave();
     }
     setState({ screen: "lobby" });
     setError("");
