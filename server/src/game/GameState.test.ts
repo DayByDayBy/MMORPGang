@@ -91,3 +91,63 @@ describe('GameStateManager lobby and phase behavior', () => {
     expect(lobby.players[0].id).toBe('socket_two')
   })
 })
+
+describe('GameStateManager host authority', () => {
+  it('first joined (named) player becomes host', () => {
+    const gsm = new GameStateManager()
+    gsm.addPlayer('p1')
+    gsm.addPlayer('p2')
+    gsm.setPlayerName('p1', 'Alice')
+
+    expect(gsm.getHostId()).toBe('p1')
+  })
+
+  it('no host when no players have joined', () => {
+    const gsm = new GameStateManager()
+    gsm.addPlayer('p1')
+    expect(gsm.getHostId()).toBeNull()
+  })
+
+  it('isHost returns true only for the host socket', () => {
+    const gsm = new GameStateManager()
+    gsm.addPlayer('p1')
+    gsm.addPlayer('p2')
+    gsm.setPlayerName('p1', 'Alice')
+    gsm.setPlayerName('p2', 'Bob')
+
+    expect(gsm.isHost('p1')).toBe(true)
+    expect(gsm.isHost('p2')).toBe(false)
+  })
+
+  it('host migrates to next joined player when host disconnects', () => {
+    const gsm = new GameStateManager()
+    gsm.addPlayer('p1')
+    gsm.addPlayer('p2')
+    gsm.setPlayerName('p1', 'Alice')
+    gsm.setPlayerName('p2', 'Bob')
+
+    gsm.removePlayer('p1')
+    expect(gsm.getHostId()).toBe('p2')
+    expect(gsm.isHost('p2')).toBe(true)
+  })
+
+  it('host becomes null when all joined players disconnect', () => {
+    const gsm = new GameStateManager()
+    gsm.addPlayer('p1')
+    gsm.addPlayer('p2')
+    gsm.setPlayerName('p1', 'Alice')
+
+    gsm.removePlayer('p1')
+    // p2 is connected but not joined (no name)
+    expect(gsm.getHostId()).toBeNull()
+  })
+
+  it('lobbyState includes hostId', () => {
+    const gsm = new GameStateManager()
+    gsm.addPlayer('p1')
+    gsm.setPlayerName('p1', 'Alice')
+
+    const lobby = gsm.getLobbyState()
+    expect(lobby.hostId).toBe('p1')
+  })
+})

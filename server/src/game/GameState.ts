@@ -64,6 +64,15 @@ export class GameStateManager {
     return named.length >= 2
   }
 
+  getHostId(): string | null {
+    const joined = Object.values(this.players).filter(p => !!p.name?.trim())
+    return joined.length > 0 ? joined[0].id : null
+  }
+
+  isHost(socketId: string): boolean {
+    return this.getHostId() === socketId
+  }
+
   getLobbyState(): LobbyState {
     return {
       players: Object.values(this.players).map((p) => ({
@@ -71,6 +80,7 @@ export class GameStateManager {
         name: p.name?.trim() || p.id.slice(0, 6),
         joined: !!p.name?.trim(),
       })),
+      hostId: this.getHostId(),
     }
   }
 

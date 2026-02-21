@@ -7,6 +7,7 @@ interface LobbyPlayer {
 interface LobbyProps {
   name: string
   players: LobbyPlayer[]
+  isHost: boolean
   onNameChange: (name: string) => void
   onJoin: () => void
   onStart: () => void
@@ -15,6 +16,7 @@ interface LobbyProps {
 export default function Lobby({
   name,
   players,
+  isHost,
   onNameChange,
   onJoin,
   onStart,
@@ -40,9 +42,11 @@ export default function Lobby({
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <strong>Players ({players.length})</strong>
-          <button onClick={onStart} disabled={players.filter(p => p.joined).length < 2}>
-            Start Game
-          </button>
+          {isHost && (
+            <button onClick={onStart} disabled={players.filter(p => p.joined).length < 2}>
+              Start Game
+            </button>
+          )}
         </div>
 
         <ul style={{ margin: 0, paddingLeft: 18 }}>

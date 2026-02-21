@@ -10,9 +10,13 @@ export default function App() {
   const [name, setName] = useState('')
   const [phase, setPhase] = useState<GameState['phase']>('lobby')
   const [players, setPlayers] = useState<LobbyState['players']>([])
+  const [hostId, setHostId] = useState<string | null>(null)
 
   useEffect(() => {
-    const onLobbyState = (state: LobbyState) => setPlayers(state.players)
+    const onLobbyState = (state: LobbyState) => {
+      setPlayers(state.players)
+      setHostId(state.hostId)
+    }
     const onGameState = (state: GameState) => setPhase(state.phase)
 
     socket.on('lobbyState', onLobbyState)
@@ -43,6 +47,7 @@ export default function App() {
     <Lobby
       name={name}
       players={players}
+      isHost={hostId === socket.id}
       onNameChange={setName}
       onJoin={joinGame}
       onStart={startGame}

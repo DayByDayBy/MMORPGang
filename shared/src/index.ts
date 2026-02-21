@@ -79,6 +79,7 @@ export interface PlayerInput {
 // ─── Lobby ─────────────────────────────────────────────────────────────────────
 export interface LobbyState {
   players: { id: string; name: string; joined: boolean }[]
+  hostId: string | null
 }
 
 // ─── Socket event contracts ────────────────────────────────────────────────────

@@ -56,6 +56,7 @@ io.on('connection', (socket) => {
     if (ok) io.emit('lobbyState', gsm.getLobbyState())
   })
   socket.on('startGame', () => {
+    if (!gsm.isHost(socket.id)) return
     if (!gsm.canStartGame()) return
     gsm.setPhase('playing')
   })
