@@ -56,8 +56,20 @@ server-side game logic is in:
 - `server/src/game/GameState.ts` — player add/remove, slot assignment, input map, `applyInputs()`
 - `server/src/game/Physics.ts` — `checkPaddleCollision` + `checkGoalCollision`
 
-server uses coordinate system, centred at (0,0) with `ARENA_RADIUS = 400 * ARENA_RADIUS_RATIO`. client still renders a mock state — wiring server state to the renderer is next up
+client still renders mock state — wiring server state to the renderer is next up
 
-note on `lives`: the goal collision logic decrements `player.lives` and resets the ball, but the lives mechanic might want rethinking?
+ 
 
-shrinking paddle arc, definitely, but also maybe it's more fun to play til you diconnect, to make the goal grow until you lose, or sth else actually good that i am too tired to think of right now
+on `lives`: the goal collision logic decrements `player.lives` and resets the ball - the lives mechanic might want rethinking?
+
+shrinking paddle arc, definitely, but also maybe rather than lives, it's more fun to play til you disconnect, or to make the goal grow until you lose, or sth
+
+---
+
+**coordinate system** — all physics now runs in canonical world space:
+
+- `WORLD_SIZE = 800`, arena centred at `(0, 0)`
+- `ARENA_RADIUS`, `GOAL_RING_RADIUS`, `GOAL_RADIUS`, `ORBIT_RADIUS`, `BALL_RADIUS`, `BALL_BASE_SPEED` all derived from `WORLD_SIZE` in `shared/src/index.ts` — no local recalculation anywhere
+- client maps world → screen with a single scale factor: `SCALE = Math.min(W, H) / WORLD_SIZE`; helper fns `wx(x)`, `wy(y)`, `toScreen(v)` for rendering
+- ball velocity is now in world-units/second; `Ball.update(dt)` takes dt in seconds (`1 / TICK_RATE`), so physics is tick-rate-independent
+
