@@ -1,5 +1,6 @@
 import { Room, Client } from "colyseus";
 import { GameRoomState, PlayerSchema } from "../schema";
+import { clearRoom } from "../audioStore";
 import {
   computeEdges,
   getArenaConfig,
@@ -22,6 +23,7 @@ export class GameRoom extends Room<GameRoomState> {
   private arenaConfig!: ArenaConfig;
   private ballRadius = BALL_RADIUS;
   private prevPaddlePositions = new Map<string, number>();
+  private audioSessionIds = new Set<string>();
 
   messages = {
     "paddle_input": (client: Client, data: { position: number }) => {
@@ -38,13 +40,17 @@ export class GameRoom extends Room<GameRoomState> {
         this.checkAllReady();
       }
     },
+
+    "audio_uploaded": (client: Client) => {
+      this.audioSessionIds.add(client.sessionId);
+      this.broadcast("audio_ready", { sessionId: client.sessionId }, { except: client });
+    },
   };
 
-  onCreate(options: { maxPlayers?: number }) {
-    const max = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, options.maxPlayers || 4));
-    this.state.maxPlayers = max;
-    this.maxClients = max;
-    console.log(`[GameRoom] Created with max ${max} players`);
+  onCreate() {
+    this.state.maxPlayers = MAX_PLAYERS;
+    this.maxClients = MAX_PLAYERS;
+    console.log(`[GameRoom] Created (up to ${MAX_PLAYERS} players)`);
   }
 
   onJoin(client: Client, options: { name?: string }) {
@@ -57,6 +63,11 @@ export class GameRoom extends Room<GameRoomState> {
     player.paddlePosition = 0.5;
 
     this.state.players.set(client.sessionId, player);
+
+    this.audioSessionIds.forEach((sid) => {
+      client.send("audio_ready", { sessionId: sid });
+    });
+
     console.log(`[GameRoom] ${player.name} joined (${this.state.players.size}/${this.state.maxPlayers})`);
   }
 
@@ -76,6 +87,7 @@ export class GameRoom extends Room<GameRoomState> {
   }
 
   onDispose() {
+    clearRoom(this.roomId);
     console.log("[GameRoom] Disposed");
   }
 
@@ -167,6 +179,7 @@ export class GameRoom extends Room<GameRoomState> {
         this.reflectBall(edge.normal);
         this.applyPaddleSpin(player, edge);
         this.pushBallIn(edge);
+        this.broadcast("paddle_hit", { sessionId: player.sessionId });
         continue;
       }
 

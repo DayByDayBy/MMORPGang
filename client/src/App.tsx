@@ -27,10 +27,10 @@ export const App = () => {
     setState({ screen: "local", playerName: name, playerCount: count });
   };
 
-  const handleCreateRoom = async (name: string, maxPlayers: number) => {
+  const handleCreateRoom = async (name: string) => {
     try {
       setError("");
-      const room = await createRoom(name, maxPlayers);
+      const room = await createRoom(name);
       setState({ screen: "waiting", room });
     } catch (e: any) {
       setError(e.message || "Failed to create room");

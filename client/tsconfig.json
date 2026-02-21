@@ -6,7 +6,8 @@
     "rootDir": "./src",
     "declaration": false,
     "declarationMap": false,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["vite/client"]
   },
   "include": ["src"],
   "references": [{ "path": "../shared" }]

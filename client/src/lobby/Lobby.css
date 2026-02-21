@@ -123,3 +123,9 @@
 .lobby__hint {
   color: #555;
 }
+
+.lobby__online-hint {
+  margin: -8px 0 0;
+  color: #666;
+  font-size: 13px;
+}

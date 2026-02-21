@@ -33,6 +33,14 @@
 .waiting__hint {
   color: #555;
   font-size: 13px;
+  margin-bottom: 0;
+}
+
+.waiting__player-count {
+  margin: 4px 0 0;
+  color: #7fdbff;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .waiting__players {

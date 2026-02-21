@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { PLAYER_COLORS } from "shared";
+import { PLAYER_COLORS, MAX_PLAYERS } from "shared";
 import type { Room } from "@colyseus/sdk";
+import { AudioRecorder } from "./AudioRecorder";
+import { SERVER_URL } from "../network/client";
 import "./WaitingRoom.css";
 
 interface PlayerInfo {
@@ -68,6 +70,7 @@ export const WaitingRoom = ({ room, onGameStart, onLeave }: WaitingRoomProps) =>
           Room ID: <code className="waiting__code">{room.roomId}</code>
         </p>
         <p className="waiting__hint">Share this ID with friends to join</p>
+        <p className="waiting__player-count">{players.length} / {MAX_PLAYERS} players</p>
 
         <ul className="waiting__players">
           {players.map((p) => (
@@ -86,6 +89,17 @@ export const WaitingRoom = ({ room, onGameStart, onLeave }: WaitingRoomProps) =>
             </li>
           ))}
         </ul>
+
+        <AudioRecorder
+          onRecorded={async (dataUrl) => {
+            await fetch(`${SERVER_URL}/api/audio`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ roomId: room.roomId, sessionId: room.sessionId, audio: dataUrl }),
+            });
+            room.send("audio_uploaded");
+          }}
+        />
 
         <div className="waiting__actions">
           <button

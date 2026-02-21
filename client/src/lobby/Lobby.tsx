@@ -4,7 +4,7 @@ import "./Lobby.css";
 
 interface LobbyProps {
   onStartLocal: (name: string, playerCount: number) => void;
-  onCreateRoom: (name: string, maxPlayers: number) => void;
+  onCreateRoom: (name: string) => void;
   onJoinRoom: (name: string, roomId: string) => void;
 }
 
@@ -24,7 +24,7 @@ export const Lobby = ({ onStartLocal, onCreateRoom, onJoinRoom }: LobbyProps) =>
   const handleCreate = () => {
     if (!valid) return;
     setError("");
-    onCreateRoom(name.trim(), playerCount);
+    onCreateRoom(name.trim());
   };
 
   const handleJoin = () => {
@@ -57,7 +57,7 @@ export const Lobby = ({ onStartLocal, onCreateRoom, onJoinRoom }: LobbyProps) =>
           </label>
 
           <label className="lobby__label">
-            Players: {playerCount}
+            Players (local): {playerCount}
             <input
               type="range"
               min={MIN_PLAYERS}
@@ -99,6 +99,7 @@ export const Lobby = ({ onStartLocal, onCreateRoom, onJoinRoom }: LobbyProps) =>
           >
             Create Online Room
           </button>
+          <p className="lobby__online-hint">Up to {MAX_PLAYERS} players — arena adapts to whoever joins</p>
 
           <div className="lobby__join-row">
             <input

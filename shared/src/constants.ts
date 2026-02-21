@@ -6,6 +6,7 @@ export const ARENA_RADIUS = 350;
 export const BALL_RADIUS = 8;
 export const BALL_SPEED = 5;
 export const PADDLE_WIDTH_RATIO = 0.35;
+export const MAX_CLIP_DURATION = 1.5;
 
 export const PLAYER_COLORS = [
   "#FF4136", // red

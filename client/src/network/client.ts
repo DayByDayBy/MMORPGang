@@ -1,6 +1,7 @@
 import { Client } from "@colyseus/sdk";
 
-const COLYSEUS_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:2567";
+export const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:2567";
+const COLYSEUS_URL = SERVER_URL;
 
 let clientInstance: Client | null = null;
 
@@ -11,9 +12,9 @@ export function getClient(): Client {
   return clientInstance;
 }
 
-export async function createRoom(name: string, maxPlayers: number) {
+export async function createRoom(name: string) {
   const client = getClient();
-  return client.create("game_room", { name, maxPlayers });
+  return client.create("game_room", { name });
 }
 
 export async function joinRoom(roomId: string, name: string) {

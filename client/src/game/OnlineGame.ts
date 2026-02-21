@@ -1,6 +1,7 @@
 import { Application, Container, Text, TextStyle } from "pixi.js";
-import { PLAYER_COLORS, ARENA_RADIUS, computeEdges } from "shared";
+import { PLAYER_COLORS, ARENA_RADIUS } from "shared";
 import type { Room } from "@colyseus/sdk";
+import { SERVER_URL } from "../network/client";
 import { Arena } from "./Arena";
 import { Paddle } from "./Paddle";
 import { Ball } from "./Ball";
@@ -27,6 +28,8 @@ export class OnlineGame {
   private keys = new Set<string>();
   private onGameOver?: (winnerName: string) => void;
   private destroyed = false;
+  private audioCtx: AudioContext | null = null;
+  private playerSounds = new Map<string, AudioBuffer>();
 
   constructor(app: Application, room: Room) {
     this.app = app;
@@ -42,16 +45,14 @@ export class OnlineGame {
     this.world.y = this.app.screen.height / 2;
 
     const state = this.room.state;
-    const numSides = state.numSides as number;
-    const serverRadius = state.arenaRadius as number;
+    const serverRadius = (state.arenaRadius as number) || ARENA_RADIUS;
 
-    const radius = Math.min(
-      serverRadius || ARENA_RADIUS,
-      Math.min(this.app.screen.width, this.app.screen.height) * 0.38,
-    );
+    const playerCount = state.players.size;
+    this.arena = new Arena(playerCount, serverRadius);
 
-    const playerCount = numSides; // arena sides == numSides from server
-    this.arena = new Arena(playerCount, radius);
+    const maxFitRadius = Math.min(this.app.screen.width, this.app.screen.height) * 0.38;
+    const scale = Math.min(1, maxFitRadius / serverRadius);
+    this.world.scale.set(scale, scale);
     this.world.addChild(this.arena);
 
     this.ball = new Ball();
@@ -70,6 +71,18 @@ export class OnlineGame {
 
     this.room.onMessage("game_over", (data: { winnerId: string; winnerName: string }) => {
       this.onGameOver?.(data.winnerName);
+    });
+
+    this.room.onMessage("audio_ready", async (data: { sessionId: string }) => {
+      await this.fetchPlayerAudio(data.sessionId);
+    });
+
+    this.room.onMessage("paddle_hit", (data: { sessionId: string }) => {
+      this.playPaddleSound(data.sessionId);
+    });
+
+    state.players.forEach((_p: any, sessionId: string) => {
+      this.fetchPlayerAudio(sessionId);
     });
 
     window.addEventListener("keydown", this.onKeyDown);
@@ -184,6 +197,33 @@ export class OnlineGame {
     }
   }
 
+  private async fetchPlayerAudio(sessionId: string) {
+    try {
+      const resp = await fetch(`${SERVER_URL}/api/audio/${this.room.roomId}/${sessionId}`);
+      if (!resp.ok) return;
+
+      const { audio } = await resp.json();
+      if (!this.audioCtx) this.audioCtx = new AudioContext();
+
+      const binResp = await fetch(audio);
+      const buf = await binResp.arrayBuffer();
+      const decoded = await this.audioCtx.decodeAudioData(buf);
+      this.playerSounds.set(sessionId, decoded);
+    } catch {
+      // ignore fetch/decode errors
+    }
+  }
+
+  private playPaddleSound(sessionId: string) {
+    const buffer = this.playerSounds.get(sessionId);
+    if (!buffer || !this.audioCtx) return;
+
+    const source = this.audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(this.audioCtx.destination);
+    source.start();
+  }
+
   destroy() {
     this.destroyed = true;
     this.app.ticker.remove(this.renderLoop);
@@ -192,5 +232,6 @@ export class OnlineGame {
     this.world.destroy({ children: true });
     this.hud.destroy({ children: true });
     this.room.removeAllListeners();
+    this.audioCtx?.close();
   }
 }
