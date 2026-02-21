@@ -25,6 +25,10 @@ export const GameScene = (props: GameSceneProps) => {
   const [winner, setWinner] = useState<string | null>(null);
 
   const onExit = props.onExit;
+  const mode = props.mode;
+  const playerCount = mode === "local" ? props.playerCount : 0;
+  const playerName = mode === "local" ? props.playerName : "";
+  const room = mode === "online" ? props.room : null;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -48,11 +52,11 @@ export const GameScene = (props: GameSceneProps) => {
 
       el.appendChild(app.canvas);
 
-      if (props.mode === "local") {
+      if (mode === "local") {
         game = new Game(app);
-        await game.init(props.playerCount, props.playerName, setWinner);
+        await game.init(playerCount, playerName, setWinner);
       } else {
-        game = new OnlineGame(app, props.room);
+        game = new OnlineGame(app, room!);
         await game.init(setWinner);
       }
     };
@@ -67,8 +71,7 @@ export const GameScene = (props: GameSceneProps) => {
         app.destroy(true, { children: true });
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props]);
+  }, [mode, playerCount, playerName, room]);
 
   return (
     <div className="game">
