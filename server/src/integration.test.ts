@@ -175,23 +175,24 @@ describe('socket integration: startGame authorization + eligibility', () => {
     const c1 = connectClient(port)
     const c2 = connectClient(port)
 
-    await waitFor<LobbyState>(c1, 'lobbyState')
-    await waitFor<LobbyState>(c2, 'lobbyState')
+    // wait until both are registered
+    await waitForLobby(c1, s => s.players.length === 2)
 
-    const c1LobbyP = waitFor<LobbyState>(c1, 'lobbyState')
-    c1.emit('joinGame', 'Alice')
-    await c1LobbyP
+    // both join
+    await new Promise<void>((resolve) => {
+      c1.once('lobbyState', () => resolve())
+      c1.emit('joinGame', 'Alice')
+    })
+    await new Promise<void>((resolve) => {
+      c1.once('lobbyState', () => resolve())
+      c2.emit('joinGame', 'Bob')
+    })
 
-    const c2LobbyP = waitFor<LobbyState>(c2, 'lobbyState')
-    c2.emit('joinGame', 'Bob')
-    await c2LobbyP
-
-    // c1 is host — startGame should succeed
-    const gameStateP = waitFor<GameState>(c1, 'gameState')
+    // c1 is host — startGame should succeed; phase changes on next tick
     c1.emit('startGame')
-    const state = await gameStateP
+    await waitMs(200)
 
-    expect(state.phase).toBe('playing')
+    expect(server.gsm.getPhase()).toBe('playing')
     c1.disconnect()
     c2.disconnect()
   })
@@ -246,23 +247,25 @@ describe('socket integration: disconnect updates and host migration', () => {
     const c1 = connectClient(port)
     const c2 = connectClient(port)
 
-    await waitFor<LobbyState>(c1, 'lobbyState')
-    await waitFor<LobbyState>(c2, 'lobbyState')
+    // wait until both are registered; capture c2's server-assigned id from lobbyState
+    const bothConnected = await waitForLobby(c1, s => s.players.length === 2)
+    const c2ServerId = bothConnected.players.find(p => p.id !== c1.id)!.id
 
-    const c1LobbyP = waitFor<LobbyState>(c1, 'lobbyState')
-    c1.emit('joinGame', 'Alice')
-    await c1LobbyP
+    await new Promise<void>((resolve) => {
+      c1.once('lobbyState', () => resolve())
+      c1.emit('joinGame', 'Alice')
+    })
+    await new Promise<void>((resolve) => {
+      c1.once('lobbyState', () => resolve())
+      c2.emit('joinGame', 'Bob')
+    })
 
-    const c2LobbyP = waitFor<LobbyState>(c2, 'lobbyState')
-    c2.emit('joinGame', 'Bob')
-    await c2LobbyP
-
-    // c1 is host; disconnect it
-    const lobbyAfterP = waitFor<LobbyState>(c2, 'lobbyState')
+    // c1 is host; disconnect it — wait for lobby where hostId === c2's server id
+    const lobbyAfterP = waitForLobby(c2, s => s.hostId === c2ServerId)
     c1.disconnect()
     const lobbyAfter = await lobbyAfterP
 
-    expect(lobbyAfter.hostId).toBe(c2.id)
+    expect(lobbyAfter.hostId).toBe(c2ServerId)
     c2.disconnect()
   })
 })
