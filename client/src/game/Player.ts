@@ -22,9 +22,13 @@ export class Player {
     g.circle(goalX, goalY, orbitRadius)
     g.stroke({ width: 0.5, color: COLORS.cyan, alpha: 0.08 })
 
-    // Paddle arc
+    // Paddle arc - moveTo first to avoid line from origin
     const startAngle = state.angle - state.paddleArc / 2
     const endAngle   = state.angle + state.paddleArc / 2
+    g.moveTo(
+      goalX + Math.cos(startAngle) * orbitRadius,
+      goalY + Math.sin(startAngle) * orbitRadius
+    )
     g.arc(goalX, goalY, orbitRadius, startAngle, endAngle)
     g.stroke({ width: 6, color: COLORS.cyan, alpha: 0.9 })
   }

@@ -11,7 +11,7 @@ export const COLORS = {
 
 // ─── Arena ────────────────────────────────────────────────────────────────────
 
-
+export const ARENA_RADIUS_RATIO = 0.45
 export const ARENA_CENTER_X = 200   
 export const ARENA_CENTER_Y = 300   // square canvas, circle fits neatly
 

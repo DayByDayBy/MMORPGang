@@ -1,46 +1,80 @@
 import { useEffect, useRef } from 'react'
-import { Application, Graphics } from 'pixi.js'
-import { COLORS } from 'shared'
-
+import { Application, Container } from 'pixi.js'
+import { ARENA_RADIUS_RATIO, COLORS, getSlotAngles } from 'shared'
+import type { BallState, PlayerState } from 'shared'
+import { Arena } from './game/Arena'
+import { Ball } from './game/Ball'
+import { Goal } from './game/Goal'
+import { Player } from './game/Player'
 
 const W = window.innerWidth
 const H = window.innerHeight
-const CANVAS_SIZE_X = W
-const CANVAS_SIZE_Y = H
-const ARENA_RADIUS = Math.min(W, H) * 0.45 
+const CENTER_X = W / 2
+const CENTER_Y = H / 2
+const ARENA_RADIUS     = Math.min(W, H) * ARENA_RADIUS_RATIO
+const GOAL_RADIUS      = ARENA_RADIUS * 0.05
+const ORBIT_RADIUS     = ARENA_RADIUS * 0.15
+const GOAL_RING_RADIUS = ARENA_RADIUS * 0.72
 
-// const CENTER_X = W / 2
-// const CENTER_Y = H / 2
-// const GOAL_RADIUS        = ARENA_RADIUS * 0.05
-// const ORBIT_RADIUS       = ARENA_RADIUS * 0.15
-// const GOAL_RING_RADIUS   = ARENA_RADIUS * 0.72
+// ─── placeholder state (layout verification, etc) ──────────────────────────────────────
+const PLAYER_COUNT = 6
+const slotAngles = getSlotAngles(PLAYER_COUNT)
 
+const mockPlayers: PlayerState[] = slotAngles.map((goalAngle, i) => ({
+  id:        String(i),
+  angle:     goalAngle,         // paddle starts pointing outward
+  goalAngle,
+  paddleArc: Math.PI / 6,       // 30 degrees
+  lives:     5,
+  score:     0,
+  connected: true,
+}))
 
+const mockBall: BallState = {
+  x: CENTER_X, y: CENTER_Y,
+  vx: 0,       vy: 0,
+}
 
 export default function GameCanvas() {
   const containerRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<Application | null>(null)
 
   useEffect(() => {
-    if (appRef.current) return  // already initialized
+    if (appRef.current) return
 
     const app = new Application()
     appRef.current = app
 
     app.init({
-      width: CANVAS_SIZE_X,
-      height: CANVAS_SIZE_Y,
+      width:           W,
+      height:          H,
       backgroundColor: COLORS.background,
-      antialias: true,
+      antialias:       true,
     }).then(() => {
       if (!containerRef.current) return
-
       containerRef.current.appendChild(app.canvas)
 
-      const g = new Graphics()
-      g.circle(CANVAS_SIZE_X / 2, CANVAS_SIZE_Y / 2, ARENA_RADIUS)
-      g.stroke({ width: 2, color: COLORS.cyan, alpha: 0.4 })
-      app.stage.addChild(g)
+      const stage = new Container()
+      app.stage.addChild(stage)
+
+      // Arena
+      new Arena(stage, CENTER_X, CENTER_Y, ARENA_RADIUS)
+
+      // Players + Goals
+      mockPlayers.forEach(p => {
+        const goalX = CENTER_X + Math.cos(p.goalAngle) * GOAL_RING_RADIUS
+        const goalY = CENTER_Y + Math.sin(p.goalAngle) * GOAL_RING_RADIUS
+
+        const goal   = new Goal(stage)
+        const player = new Player(stage)
+
+        goal.render(p, goalX, goalY, GOAL_RADIUS)
+        player.render(p, goalX, goalY, ORBIT_RADIUS)
+      })
+
+      // Ball
+      const ball = new Ball(stage)
+      ball.render(mockBall, ARENA_RADIUS * 0.015)
     })
 
     return () => {
