@@ -1,7 +1,5 @@
-import { ORBIT_RADIUS, BALL_RADIUS, BALL_BASE_SPEED, reflect, normalize } from 'shared'
+import { ORBIT_RADIUS, BALL_RADIUS, BALL_BASE_SPEED, GOAL_RADIUS, reflect, normalize } from 'shared'
 import type { BallState, PlayerState } from 'shared'
-
-const GOAL_RADIUS = 400 * 0.45 * 0.05  // mirrors client: ARENA_RADIUS * 0.05
 
 function angleDiff(a: number, b: number): number {
   let d = a - b

@@ -1,7 +1,7 @@
-import { BALL_BASE_SPEED, BALL_RADIUS, ARENA_RADIUS_RATIO, reflect } from 'shared'
+import { BALL_BASE_SPEED, BALL_RADIUS, ARENA_RADIUS, reflect } from 'shared'
 import type { BallState } from 'shared'
 
-const ARENA_RADIUS = 400 * ARENA_RADIUS_RATIO  // logical server arena: 400px reference
+const DT = 1 / 60  // seconds per tick at 60hz
 
 const CENTER_X = 0
 const CENTER_Y = 0
@@ -19,9 +19,9 @@ export class Ball {
     }
   }
 
-  update() {
-    this.state.x += this.state.vx
-    this.state.y += this.state.vy
+  update(dt: number = DT) {
+    this.state.x += this.state.vx * dt
+    this.state.y += this.state.vy * dt
 
     const dx   = this.state.x - CENTER_X
     const dy   = this.state.y - CENTER_Y
@@ -43,7 +43,7 @@ export class Ball {
   }
 
   reset() {
-    const angle = Math.random() * Math.PI * 2
+    const angle   = Math.random() * Math.PI * 2
     this.state.x  = CENTER_X
     this.state.y  = CENTER_Y
     this.state.vx = Math.cos(angle) * BALL_BASE_SPEED

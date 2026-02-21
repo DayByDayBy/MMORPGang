@@ -1,13 +1,12 @@
 import express from 'express'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
-import { TICK_RATE, ARENA_RADIUS_RATIO } from 'shared'
+import { TICK_RATE, GOAL_RING_RADIUS } from 'shared'
 import { Ball } from './game/Ball'
 import { GameStateManager } from './game/GameState'
 import { checkPaddleCollision, checkGoalCollision } from './game/Physics'
 
-const ARENA_RADIUS     = 400 * ARENA_RADIUS_RATIO
-const GOAL_RING_RADIUS = ARENA_RADIUS * 0.72
+const DT = 1 / TICK_RATE  // seconds per tick
 
 const app = express()
 const httpServer = createServer(app)
@@ -22,7 +21,7 @@ const gsm  = new GameStateManager()
 setInterval(() => {
   tick++
   gsm.applyInputs()
-  ball.update()
+  ball.update(DT)
   const ballState = ball.getState()
   for (const player of Object.values(gsm.getPlayers())) {
     const goalX = Math.cos(player.goalAngle) * GOAL_RING_RADIUS

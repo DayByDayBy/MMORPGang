@@ -9,22 +9,24 @@ export const COLORS = {
 
 
 
-// ─── Arena ────────────────────────────────────────────────────────────────────
-
-export const ARENA_RADIUS_RATIO = 0.45
-export const ARENA_CENTER_X = 200   
-export const ARENA_CENTER_Y = 300   // square canvas, circle fits neatly
+// ─── Canonical world ─────────────────────────────────────────────────────────
+// All physics runs in this coordinate space. (0,0) = arena centre.
+// Client scales world → screen with a single factor: screen_px / WORLD_SIZE.
+export const WORLD_SIZE        = 800                          // logical px, square
+export const ARENA_RADIUS      = WORLD_SIZE * 0.45            // 360
+export const GOAL_RING_RADIUS  = ARENA_RADIUS * 0.72          // 259.2
+export const GOAL_RADIUS       = ARENA_RADIUS * 0.05          // 18
 
 // ─── Ball ─────────────────────────────────────────────────────────────────────
-export const BALL_RADIUS     = 10
-export const BALL_BASE_SPEED = 5
-export const BALL_MAX_SPEED  = 10
+export const BALL_RADIUS     = WORLD_SIZE * 0.0125            // 10
+export const BALL_BASE_SPEED = WORLD_SIZE * 0.00625 * 60      // 300 world-units/sec
+export const BALL_MAX_SPEED  = WORLD_SIZE * 0.0125  * 60      // 600 world-units/sec
 
 // ─── Player / Paddle ──────────────────────────────────────────────────────────
-export const ORBIT_RADIUS      = 120   // distance from goal center to paddle
+export const ORBIT_RADIUS      = ARENA_RADIUS * 0.15          // 54
 export const PADDLE_ARC        = 0.5   // radians — arc length of paddle
 export const PADDLE_MIN_ARC    = 0.15  // minimum arc (winning shrinks it)
-export const ORBIT_SPEED       = 0.05  // radians/tick at full speed
+export const ORBIT_SPEED       = 0.05  // radians/sec (applied per tick via dt)
 export const ORBIT_ACCEL       = 0.18  // lerp factor for smooth acceleration
 
 // ─── Game ─────────────────────────────────────────────────────────────────────
