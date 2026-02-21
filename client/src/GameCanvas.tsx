@@ -92,7 +92,7 @@ export default function GameCanvas() {
           }
           const objs = playerObjs.get(id)!
           objs.goal.render(p, goalX, goalY, toScreen(GOAL_RADIUS))
-          objs.player.render(p, goalX, goalY, toScreen(ORBIT_RADIUS))
+          objs.player.render(p, goalX, goalY, toScreen(ORBIT_RADIUS), id === socket.id)
         }
 
         // Remove disconnected players
