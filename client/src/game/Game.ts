@@ -1,6 +1,6 @@
-import { Application, Container, Text, TextStyle } from "pixi.js";
-import { DEFAULT_LIVES, PLAYER_COLORS, ARENA_RADIUS } from "shared";
-import type { Vector2, Edge } from "shared";
+import { Application, Container, Text, TextStyle, Ticker } from "pixi.js";
+import { DEFAULT_LIVES, PLAYER_COLORS, ARENA_RADIUS, ballNearSegment, ballPassedEdge } from "shared";
+import type { Edge } from "shared";
 import { Arena } from "./Arena";
 import { Paddle } from "./Paddle";
 import { Ball } from "./Ball";
@@ -32,6 +32,7 @@ export class Game {
   private hud = new Container();
   private hudTexts: Text[] = [];
   private keys = new Set<string>();
+  private tickAccumulator = 0;
   private running = false;
   private onGameOver?: (winnerName: string | null) => void;
   private ballHitDistSq = 0;
@@ -50,12 +51,11 @@ export class Game {
     this.world.x = this.app.screen.width / 2;
     this.world.y = this.app.screen.height / 2;
 
-    const radius = Math.min(
-      ARENA_RADIUS,
-      Math.min(this.app.screen.width, this.app.screen.height) * 0.38,
-    );
+    const maxFitRadius = Math.min(this.app.screen.width, this.app.screen.height) * 0.38;
+    const scale = Math.min(1, maxFitRadius / ARENA_RADIUS);
+    this.world.scale.set(scale, scale);
 
-    this.arena = new Arena(playerCount, radius);
+    this.arena = new Arena(playerCount, ARENA_RADIUS);
     this.world.addChild(this.arena);
 
     this.ball = new Ball();
@@ -102,16 +102,20 @@ export class Game {
   private onKeyDown = (e: KeyboardEvent) => this.keys.add(e.key.toLowerCase());
   private onKeyUp = (e: KeyboardEvent) => this.keys.delete(e.key.toLowerCase());
 
-  private gameLoop = () => {
+  private gameLoop = (ticker: Ticker) => {
     if (!this.running) return;
-    this.handleInput();
-    this.updateAI();
-    this.ball.update();
-    this.checkCollisions();
-    this.checkOutOfBounds();
-    if (this.hudDirty) {
-      this.updateHud();
-      this.hudDirty = false;
+    this.tickAccumulator += ticker.deltaTime;
+    if (this.tickAccumulator >= 1) {
+      this.tickAccumulator -= 1;
+      this.handleInput();
+      this.updateAI();
+      this.ball.update();
+      this.checkCollisions();
+      this.checkOutOfBounds();
+      if (this.hudDirty) {
+        this.updateHud();
+        this.hudDirty = false;
+      }
     }
   };
 
@@ -156,7 +160,6 @@ export class Game {
       let goalT: number;
 
       if (defend) {
-        // Always go straight to the ball; apply a small offset for spin
         const offset = (ballProj > 0.5 ? 1 : -1) * 0.06 * ai.aggressiveness;
         goalT = ballProj + offset;
       } else {
@@ -179,13 +182,15 @@ export class Game {
   }
 
   private checkCollisions() {
+    const bx = this.ball.x;
+    const by = this.ball.y;
+
     for (let i = 0; i < this.arena.edges.length; i++) {
       const edge = this.arena.edges[i];
       const player = this.playersByEdge.get(i);
 
       if (!player || player.eliminated) {
-        // wall edge — always reflect
-        if (this.ballNearLineSegment(edge.start, edge.end)) {
+        if (ballNearSegment(bx, by, edge.start, edge.end, this.ballHitDistSq)) {
           this.ball.reflect(edge.normal);
           this.pushBallIn(edge);
         }
@@ -193,7 +198,7 @@ export class Game {
       }
 
       const endpoints = player.paddle.getEndpoints();
-      if (this.ballNearLineSegment(endpoints.start, endpoints.end)) {
+      if (ballNearSegment(bx, by, endpoints.start, endpoints.end, this.ballHitDistSq)) {
         this.ball.reflect(edge.normal);
         this.ball.addSpin(player.paddle.getTangentVelocity());
         this.pushBallIn(edge);
@@ -201,7 +206,7 @@ export class Game {
         continue;
       }
 
-      if (this.ballPassedThroughEdge(edge)) {
+      if (ballPassedEdge(bx, by, this.ball.radius, edge)) {
         player.lives--;
         this.hudDirty = true;
         if (player.lives <= 0) {
@@ -222,31 +227,6 @@ export class Game {
         break;
       }
     }
-  }
-
-  private ballNearLineSegment(a: Vector2, b: Vector2): boolean {
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const lenSq = dx * dx + dy * dy;
-    const t = Math.max(0, Math.min(1,
-      ((this.ball.x - a.x) * dx + (this.ball.y - a.y) * dy) / lenSq,
-    ));
-    const distSq =
-      (this.ball.x - (a.x + t * dx)) ** 2 +
-      (this.ball.y - (a.y + t * dy)) ** 2;
-    return distSq <= this.ballHitDistSq;
-  }
-
-  private ballPassedThroughEdge(edge: Edge): boolean {
-    const relX = this.ball.x - edge.start.x;
-    const relY = this.ball.y - edge.start.y;
-    const dot = relX * edge.normal.x + relY * edge.normal.y;
-    if (dot <= this.ball.radius) return false;
-
-    const edgeDx = edge.end.x - edge.start.x;
-    const edgeDy = edge.end.y - edge.start.y;
-    const proj = (relX * edgeDx + relY * edgeDy) / edge.length;
-    return proj >= -this.ball.radius && proj <= edge.length + this.ball.radius;
   }
 
   private pushBallIn(edge: Edge) {

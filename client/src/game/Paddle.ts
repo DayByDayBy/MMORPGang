@@ -1,5 +1,5 @@
 import { Graphics, Container } from "pixi.js";
-import { PADDLE_WIDTH_RATIO, PLAYER_COLORS } from "shared";
+import { PADDLE_WIDTH_RATIO, PLAYER_COLORS, getPaddleEndpoints } from "shared";
 import type { Edge } from "shared";
 
 export class Paddle extends Container {
@@ -11,10 +11,6 @@ export class Paddle extends Container {
 
   private gfx = new Graphics();
   private edge!: Edge;
-  private endpoints = {
-    start: { x: 0, y: 0 },
-    end: { x: 0, y: 0 },
-  };
   private tangentVelocity = { x: 0, y: 0 };
 
   constructor(edgeIndex: number, colorIndex: number, widthRatio = PADDLE_WIDTH_RATIO) {
@@ -78,13 +74,6 @@ export class Paddle extends Container {
   }
 
   public getEndpoints() {
-    const halfLen = (this.edge.length * this.widthRatio) / 2;
-    const cos = Math.cos(this.edge.angle);
-    const sin = Math.sin(this.edge.angle);
-    this.endpoints.start.x = this.x - cos * halfLen;
-    this.endpoints.start.y = this.y - sin * halfLen;
-    this.endpoints.end.x = this.x + cos * halfLen;
-    this.endpoints.end.y = this.y + sin * halfLen;
-    return this.endpoints;
+    return getPaddleEndpoints(this.position_t, this.edge, this.widthRatio);
   }
 }

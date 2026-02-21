@@ -4,6 +4,11 @@ import { clearRoom } from "../audioStore";
 import {
   computeEdges,
   getArenaConfig,
+  ballNearSegment,
+  ballPassedEdge,
+  reflectVelocity,
+  clampSpeed,
+  getPaddleEndpoints,
   BALL_SPEED,
   BALL_RADIUS,
   MAX_BALL_SPEED,
@@ -27,10 +32,6 @@ export class GameRoom extends Room {
   private prevPaddlePositions = new Map<string, number>();
   private audioSessionIds = new Set<string>();
   private playersByEdge = new Map<number, PlayerSchema>();
-  private paddleEndpoints = {
-    start: { x: 0, y: 0 },
-    end: { x: 0, y: 0 },
-  };
   private ballVx = 0;
   private ballVy = 0;
 
@@ -180,21 +181,22 @@ export class GameRoom extends Room {
 
   private checkCollisions() {
     this.buildPlayersByEdge();
+    const { x: bx, y: by } = this.state.ball;
 
     for (let i = 0; i < this.edges.length; i++) {
       const edge = this.edges[i];
       const player = this.playersByEdge.get(i);
 
       if (!player || player.eliminated) {
-        if (this.ballNearLineSegment(edge.start, edge.end)) {
+        if (ballNearSegment(bx, by, edge.start, edge.end, this.ballHitDistSq)) {
           this.reflectBall(edge.normal);
           this.pushBallIn(edge);
         }
         continue;
       }
 
-      const paddleEndpoints = this.getPaddleEndpoints(player, edge);
-      if (this.ballNearLineSegment(paddleEndpoints.start, paddleEndpoints.end)) {
+      const endpoints = getPaddleEndpoints(player.paddlePosition, edge, PADDLE_WIDTH_RATIO);
+      if (ballNearSegment(bx, by, endpoints.start, endpoints.end, this.ballHitDistSq)) {
         this.reflectBall(edge.normal);
         this.applyPaddleSpin(player, edge);
         this.pushBallIn(edge);
@@ -202,7 +204,7 @@ export class GameRoom extends Room {
         continue;
       }
 
-      if (this.ballPassedThroughEdge(edge)) {
+      if (ballPassedEdge(bx, by, this.ballRadius, edge)) {
         player.lives--;
         this.broadcast("player_scored", { scoredOnId: player.sessionId });
 
@@ -223,60 +225,11 @@ export class GameRoom extends Room {
     });
   }
 
-  private getPaddleEndpoints(player: PlayerSchema, edge: Edge) {
-    const t = player.paddlePosition;
-    const cx = edge.start.x + (edge.end.x - edge.start.x) * t;
-    const cy = edge.start.y + (edge.end.y - edge.start.y) * t;
-
-    const halfLen = (edge.length * PADDLE_WIDTH_RATIO) / 2;
-    const cos = Math.cos(edge.angle);
-    const sin = Math.sin(edge.angle);
-
-    this.paddleEndpoints.start.x = cx - cos * halfLen;
-    this.paddleEndpoints.start.y = cy - sin * halfLen;
-    this.paddleEndpoints.end.x = cx + cos * halfLen;
-    this.paddleEndpoints.end.y = cy + sin * halfLen;
-    return this.paddleEndpoints;
-  }
-
-  private ballNearLineSegment(a: Vector2, b: Vector2): boolean {
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const lenSq = dx * dx + dy * dy;
-    let t = ((this.state.ball.x - a.x) * dx + (this.state.ball.y - a.y) * dy) / lenSq;
-    t = Math.max(0, Math.min(1, t));
-
-    const closestX = a.x + t * dx;
-    const closestY = a.y + t * dy;
-    const distSq =
-      (this.state.ball.x - closestX) ** 2 + (this.state.ball.y - closestY) ** 2;
-
-    return distSq <= this.ballHitDistSq;
-  }
-
-  private ballPassedThroughEdge(edge: Edge): boolean {
-    const relX = this.state.ball.x - edge.start.x;
-    const relY = this.state.ball.y - edge.start.y;
-    const dot = relX * edge.normal.x + relY * edge.normal.y;
-
-    if (dot > this.ballRadius) {
-      const edgeDx = edge.end.x - edge.start.x;
-      const edgeDy = edge.end.y - edge.start.y;
-      const proj = (relX * edgeDx + relY * edgeDy) / edge.length;
-      return proj >= -this.ballRadius && proj <= edge.length + this.ballRadius;
-    }
-    return false;
-  }
-
   private reflectBall(normal: Vector2) {
-    const dot = this.ballVx * normal.x + this.ballVy * normal.y;
-    this.ballVx -= 2 * dot * normal.x;
-    this.ballVy -= 2 * dot * normal.y;
-
-    const speedUp = 1.02;
-    this.ballVx *= speedUp;
-    this.ballVy *= speedUp;
-    this.clampBallSpeed();
+    const v = reflectVelocity(this.ballVx, this.ballVy, normal);
+    const clamped = clampSpeed(v.x, v.y, MAX_BALL_SPEED);
+    this.ballVx = clamped.x;
+    this.ballVy = clamped.y;
   }
 
   private applyPaddleSpin(player: PlayerSchema, edge: Edge) {
@@ -286,21 +239,14 @@ export class GameRoom extends Room {
     const influence = 0.6;
     this.ballVx += Math.cos(edge.angle) * speed * influence;
     this.ballVy += Math.sin(edge.angle) * speed * influence;
-    this.clampBallSpeed();
-  }
-
-  private clampBallSpeed() {
-    const speed = Math.sqrt(this.ballVx ** 2 + this.ballVy ** 2);
-    if (speed > MAX_BALL_SPEED) {
-      const scale = MAX_BALL_SPEED / speed;
-      this.ballVx *= scale;
-      this.ballVy *= scale;
-    }
+    const clamped = clampSpeed(this.ballVx, this.ballVy, MAX_BALL_SPEED);
+    this.ballVx = clamped.x;
+    this.ballVy = clamped.y;
   }
 
   private pushBallIn(edge: { normal: Vector2 }) {
-    this.state.ball.x += edge.normal.x * -2;
-    this.state.ball.y += edge.normal.y * -2;
+    this.state.ball.x -= edge.normal.x * 2;
+    this.state.ball.y -= edge.normal.y * 2;
   }
 
   private checkWinCondition() {
