@@ -16,7 +16,7 @@ import {
 } from "shared";
 import type { Edge, Vector2, ArenaConfig } from "shared";
 
-export class GameRoom extends Room<GameRoomState> {
+export class GameRoom extends Room {
   state = new GameRoomState();
   maxClients = MAX_PLAYERS;
 
@@ -80,11 +80,11 @@ export class GameRoom extends Room<GameRoomState> {
     console.log(`[GameRoom] ${player.name} joined (${this.state.players.size}/${this.state.maxPlayers})`);
   }
 
-  onLeave(client: Client, consented: boolean) {
+  onLeave(client: Client, code?: number) {
     const player = this.state.players.get(client.sessionId);
     if (!player) return;
 
-    console.log(`[GameRoom] ${player.name} left (consented: ${consented})`);
+    console.log(`[GameRoom] ${player.name} left (code: ${code})`);
 
     if (this.state.phase === "playing") {
       player.eliminated = true;
@@ -155,14 +155,14 @@ export class GameRoom extends Room<GameRoomState> {
     this.state.ball.x = 0;
     this.state.ball.y = 0;
 
-    let target: PlayerSchema | null = null;
-    let aliveCount = 0;
+    const alivePlayers: PlayerSchema[] = [];
     this.state.players.forEach((p) => {
-      if (!p.eliminated) {
-        aliveCount++;
-        if (Math.random() < 1 / aliveCount) target = p;
-      }
+      if (!p.eliminated) alivePlayers.push(p);
     });
+
+    const target = alivePlayers.length > 0
+      ? alivePlayers[Math.floor(Math.random() * alivePlayers.length)]
+      : null;
 
     if (target) {
       const edge = this.edges[target.edgeIndex];
@@ -304,17 +304,13 @@ export class GameRoom extends Room<GameRoomState> {
   }
 
   private checkWinCondition() {
-    let aliveCount = 0;
-    let lastAlive: PlayerSchema | null = null;
-
+    const alivePlayers: PlayerSchema[] = [];
     this.state.players.forEach((player) => {
-      if (!player.eliminated) {
-        aliveCount++;
-        lastAlive = player;
-      }
+      if (!player.eliminated) alivePlayers.push(player);
     });
 
-    if (aliveCount <= 1) {
+    if (alivePlayers.length <= 1) {
+      const lastAlive = alivePlayers[0] ?? null;
       this.state.phase = "ended";
       this.state.winnerId = lastAlive?.sessionId ?? "";
       this.state.winnerName = lastAlive?.name ?? "Nobody";
