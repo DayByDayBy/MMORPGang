@@ -22,8 +22,9 @@ describe('GameStateManager lobby and phase behavior', () => {
   it('uses player name once set', () => {
     const gsm = new GameStateManager()
     gsm.addPlayer('socket_one')
-    gsm.setPlayerName('socket_one', 'Alice')
+    const ok = gsm.setPlayerName('socket_one', 'Alice')
 
+    expect(ok).toBe(true)
     const lobby = gsm.getLobbyState()
     expect(lobby.players[0].name).toBe('Alice')
   })
@@ -31,10 +32,19 @@ describe('GameStateManager lobby and phase behavior', () => {
   it('falls back to id slice when player name is blank', () => {
     const gsm = new GameStateManager()
     gsm.addPlayer('socket_blank')
-    gsm.setPlayerName('socket_blank', '   ')
+    const ok = gsm.setPlayerName('socket_blank', '   ')
 
+    expect(ok).toBe(false)
     const lobby = gsm.getLobbyState()
     expect(lobby.players[0].name).toBe('socket')
+  })
+
+  it('requires two players to start', () => {
+    const gsm = new GameStateManager()
+    gsm.addPlayer('p1')
+    expect(gsm.canStartGame()).toBe(false)
+    gsm.addPlayer('p2')
+    expect(gsm.canStartGame()).toBe(true)
   })
 
   it('reflects phase changes in emitted game state', () => {

@@ -42,10 +42,13 @@ export class GameStateManager {
     this.inputs.set(socketId, input)
   }
 
-  setPlayerName(socketId: string, name: string): void {
+  setPlayerName(socketId: string, name: string): boolean {
     const player = this.players[socketId]
-    if (!player) return
-    player.name = name
+    if (!player) return false
+    const trimmed = (name ?? '').trim()
+    if (!trimmed) return false
+    player.name = trimmed.slice(0, 24)
+    return true
   }
 
   setPhase(phase: GameState['phase']): void {
@@ -54,6 +57,10 @@ export class GameStateManager {
 
   getPhase(): GameState['phase'] {
     return this.phase
+  }
+
+  canStartGame(): boolean {
+    return Object.keys(this.players).length >= 2
   }
 
   getLobbyState(): LobbyState {

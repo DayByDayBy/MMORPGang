@@ -52,13 +52,11 @@ io.on('connection', (socket) => {
     gsm.setInput(socket.id, { left: input.left, right: input.right })
   })
   socket.on('joinGame', (name) => {
-    const trimmed = (name ?? '').trim()
-    if (!trimmed) return
-    gsm.setPlayerName(socket.id, trimmed.slice(0, 24))
-    io.emit('lobbyState', gsm.getLobbyState())
+    const ok = gsm.setPlayerName(socket.id, name)
+    if (ok) io.emit('lobbyState', gsm.getLobbyState())
   })
   socket.on('startGame', () => {
-    if (gsm.getLobbyState().players.length < 2) return
+    if (!gsm.canStartGame()) return
     gsm.setPhase('playing')
   })
   socket.on('disconnect', () => {
