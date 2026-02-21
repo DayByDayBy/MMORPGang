@@ -99,8 +99,16 @@ export class Game {
     this.updateAI();
     this.ball.update();
     this.checkCollisions();
+    this.checkOutOfBounds();
     this.updateHud();
   };
+
+  private checkOutOfBounds() {
+    const dist = Math.sqrt(this.ball.x ** 2 + this.ball.y ** 2);
+    if (dist > this.arena.radius * 1.5) {
+      this.launchBall();
+    }
+  }
 
   private handleInput() {
     const player = this.players[0];

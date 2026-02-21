@@ -1,5 +1,5 @@
 import { Graphics, Container } from "pixi.js";
-import { BALL_RADIUS, BALL_SPEED } from "shared";
+import { BALL_RADIUS, BALL_SPEED, MAX_BALL_SPEED } from "shared";
 import type { Vector2 } from "shared";
 
 export class Ball extends Container {
@@ -32,11 +32,22 @@ export class Ball extends Container {
     this.velocity.y -= 2 * dot * normal.y;
     this.velocity.x *= 1.02;
     this.velocity.y *= 1.02;
+    this.clampSpeed();
   }
 
   public addSpin(tangentVelocity: Vector2, influence = 0.6) {
     this.velocity.x += tangentVelocity.x * influence;
     this.velocity.y += tangentVelocity.y * influence;
+    this.clampSpeed();
+  }
+
+  private clampSpeed() {
+    const speed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+    if (speed > MAX_BALL_SPEED) {
+      const scale = MAX_BALL_SPEED / speed;
+      this.velocity.x *= scale;
+      this.velocity.y *= scale;
+    }
   }
 
   public launch(target: Vector2) {

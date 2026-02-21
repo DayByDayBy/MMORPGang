@@ -6,6 +6,7 @@ import {
   getArenaConfig,
   BALL_SPEED,
   BALL_RADIUS,
+  MAX_BALL_SPEED,
   DEFAULT_LIVES,
   ARENA_RADIUS,
   TICK_RATE,
@@ -131,6 +132,11 @@ export class GameRoom extends Room<GameRoomState> {
     this.state.ball.y += this.state.ball.vy;
 
     this.checkCollisions();
+
+    const dist = Math.sqrt(this.state.ball.x ** 2 + this.state.ball.y ** 2);
+    if (dist > this.state.arenaRadius * 1.5) {
+      this.resetBall();
+    }
 
     this.state.players.forEach((player, id) => {
       this.prevPaddlePositions.set(id, player.paddlePosition);
@@ -259,6 +265,7 @@ export class GameRoom extends Room<GameRoomState> {
     const speedUp = 1.02;
     this.state.ball.vx *= speedUp;
     this.state.ball.vy *= speedUp;
+    this.clampBallSpeed();
   }
 
   private applyPaddleSpin(player: PlayerSchema, edge: Edge) {
@@ -268,6 +275,16 @@ export class GameRoom extends Room<GameRoomState> {
     const influence = 0.6;
     this.state.ball.vx += Math.cos(edge.angle) * speed * influence;
     this.state.ball.vy += Math.sin(edge.angle) * speed * influence;
+    this.clampBallSpeed();
+  }
+
+  private clampBallSpeed() {
+    const speed = Math.sqrt(this.state.ball.vx ** 2 + this.state.ball.vy ** 2);
+    if (speed > MAX_BALL_SPEED) {
+      const scale = MAX_BALL_SPEED / speed;
+      this.state.ball.vx *= scale;
+      this.state.ball.vy *= scale;
+    }
   }
 
   private pushBallIn(edge: { normal: Vector2 }) {
