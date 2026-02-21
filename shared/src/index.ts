@@ -54,6 +54,7 @@ export interface BallState {
 
 export interface PlayerState {
   id:         string
+  name?:      string
   angle:      number   // current paddle angle around their orbit
   goalAngle:  number   // this player's slot angle around the arena
   paddleArc:  number   // current arc width in radians

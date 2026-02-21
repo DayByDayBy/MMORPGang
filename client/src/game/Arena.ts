@@ -3,13 +3,19 @@ import { COLORS } from 'shared'
 
 export class Arena {
     private gfx: Graphics
+    private cx: number
+    private cy: number
+    private radius: number
 
     constructor(
         stage: Container,
-        private cx: number,
-        private cy: number,
-        private radius: number
+        cx: number,
+        cy: number,
+        radius: number
     ) {
+        this.cx = cx
+        this.cy = cy
+        this.radius = radius
         this.gfx = new Graphics()
         stage.addChild(this.gfx)
         this.draw()

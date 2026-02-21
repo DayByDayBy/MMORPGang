@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { Application, Container } from 'pixi.js'
-import { io } from 'socket.io-client'
 import {
   WORLD_SIZE, ARENA_RADIUS, GOAL_RING_RADIUS, GOAL_RADIUS,
   ORBIT_RADIUS, BALL_RADIUS, COLORS,
@@ -10,6 +9,8 @@ import { Arena } from './game/Arena'
 import { Ball } from './game/Ball'
 import { Goal } from './game/Goal'
 import { Player } from './game/Player'
+import { useInput } from './hooks/useInput'
+import type { GameSocket } from './socket'
 
 const W = window.innerWidth
 const H = window.innerHeight
@@ -21,41 +22,25 @@ const toScreen = (v: number) => v * SCALE
 const wx = (x: number) => CENTER_X + x * SCALE
 const wy = (y: number) => CENTER_Y + y * SCALE
 
-export default function GameCanvas() {
+interface GameCanvasProps {
+  socket: GameSocket | null
+}
+
+export default function GameCanvas({ socket }: GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<Application | null>(null)
 
+  useInput(socket)
+
   useEffect(() => {
-    if (appRef.current) return
-
-    const socket = io('http://localhost:3001')
-
-    const input = { left: false, right: false }
-    const KEYS = new Set(['ArrowLeft', 'a', 'ArrowRight', 'd'])
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (!KEYS.has(e.key) || e.repeat) return
-      const prev = { ...input }
-      if (e.key === 'ArrowLeft'  || e.key === 'a') input.left  = true
-      if (e.key === 'ArrowRight' || e.key === 'd') input.right = true
-      if (input.left !== prev.left || input.right !== prev.right)
-        socket.emit('playerInput', { ...input })
-    }
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (!KEYS.has(e.key)) return
-      const prev = { ...input }
-      if (e.key === 'ArrowLeft'  || e.key === 'a') input.left  = false
-      if (e.key === 'ArrowRight' || e.key === 'd') input.right = false
-      if (input.left !== prev.left || input.right !== prev.right)
-        socket.emit('playerInput', { ...input })
-    }
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup',   onKeyUp)
+    if (appRef.current || !socket) return
 
     const app = new Application()
     appRef.current = app
 
     let ballObj: Ball | null = null
     const playerObjs = new Map<string, { goal: Goal; player: Player }>()
+    let onGameState: ((state: GameState) => void) | null = null
 
     app.init({
       width:           W,
@@ -71,7 +56,7 @@ export default function GameCanvas() {
 
       new Arena(stage, CENTER_X, CENTER_Y, toScreen(ARENA_RADIUS))
 
-      socket.on('gameState', (state: GameState) => {
+      onGameState = (state: GameState) => {
         // Ball — create on first state
         if (!ballObj) ballObj = new Ball(stage)
         ballObj.render(
@@ -104,13 +89,13 @@ export default function GameCanvas() {
             playerObjs.delete(id)
           }
         }
-      })
+      }
+
+      socket.on('gameState', onGameState)
     })
 
     return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup',   onKeyUp)
-      socket.disconnect()
+      if (onGameState) socket.off('gameState', onGameState)
       for (const objs of playerObjs.values()) {
         objs.goal.destroy()
         objs.player.destroy()
@@ -120,7 +105,7 @@ export default function GameCanvas() {
       appRef.current = null
       app.destroy(true)
     }
-  }, [])
+  }, [socket])
 
   return (
     <div
