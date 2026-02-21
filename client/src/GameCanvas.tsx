@@ -3,9 +3,9 @@ import { Application, Container } from 'pixi.js'
 import { io } from 'socket.io-client'
 import {
   WORLD_SIZE, ARENA_RADIUS, GOAL_RING_RADIUS, GOAL_RADIUS,
-  ORBIT_RADIUS, COLORS, getSlotAngles,
+  ORBIT_RADIUS, BALL_RADIUS, COLORS,
 } from 'shared'
-import type { BallState, GameState, PlayerState } from 'shared'
+import type { GameState } from 'shared'
 import { Arena } from './game/Arena'
 import { Ball } from './game/Ball'
 import { Goal } from './game/Goal'
@@ -15,31 +15,11 @@ const W = window.innerWidth
 const H = window.innerHeight
 const CENTER_X = W / 2
 const CENTER_Y = H / 2
-// Single scale factor: world (0,0)-centred coords → screen pixels
 const SCALE = Math.min(W, H) / WORLD_SIZE
 
 const toScreen = (v: number) => v * SCALE
 const wx = (x: number) => CENTER_X + x * SCALE
 const wy = (y: number) => CENTER_Y + y * SCALE
-
-// ─── placeholder state (layout verification, etc) ──────────────────────────────────────
-const PLAYER_COUNT = 6
-const slotAngles = getSlotAngles(PLAYER_COUNT)
-
-const mockPlayers: PlayerState[] = slotAngles.map((goalAngle, i) => ({
-  id:        String(i),
-  angle:     goalAngle,         // paddle starts pointing outward
-  goalAngle,
-  paddleArc: Math.PI / 6,       // 30 degrees
-  lives:     5,
-  score:     0,
-  connected: true,
-}))
-
-const mockBall: BallState = {
-  x: 0, y: 0,
-  vx: 0, vy: 0,
-}
 
 export default function GameCanvas() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -49,9 +29,6 @@ export default function GameCanvas() {
     if (appRef.current) return
 
     const socket = io('http://localhost:3001')
-    socket.on('gameState', (state: GameState) => {
-      console.log('tick', state.tick)
-    })
 
     const input = { left: false, right: false }
     const KEYS = new Set(['ArrowLeft', 'a', 'ArrowRight', 'd'])
@@ -77,6 +54,9 @@ export default function GameCanvas() {
     const app = new Application()
     appRef.current = app
 
+    let ballObj: Ball | null = null
+    const playerObjs = new Map<string, { goal: Goal; player: Player }>()
+
     app.init({
       width:           W,
       height:          H,
@@ -89,24 +69,39 @@ export default function GameCanvas() {
       const stage = new Container()
       app.stage.addChild(stage)
 
-      // Arena
       new Arena(stage, CENTER_X, CENTER_Y, toScreen(ARENA_RADIUS))
 
-      // Players + Goals
-      mockPlayers.forEach(p => {
-        const goalX = wx(Math.cos(p.goalAngle) * GOAL_RING_RADIUS)
-        const goalY = wy(Math.sin(p.goalAngle) * GOAL_RING_RADIUS)
+      socket.on('gameState', (state: GameState) => {
+        // Ball — create on first state
+        if (!ballObj) ballObj = new Ball(stage)
+        ballObj.render(
+          { x: wx(state.ball.x), y: wy(state.ball.y), vx: state.ball.vx, vy: state.ball.vy },
+          toScreen(BALL_RADIUS),
+        )
 
-        const goal   = new Goal(stage)
-        const player = new Player(stage)
+        // Players + Goals — create / update / remove
+        for (const [id, p] of Object.entries(state.players)) {
+          const goalX = wx(Math.cos(p.goalAngle) * GOAL_RING_RADIUS)
+          const goalY = wy(Math.sin(p.goalAngle) * GOAL_RING_RADIUS)
 
-        goal.render(p, goalX, goalY, toScreen(GOAL_RADIUS))
-        player.render(p, goalX, goalY, toScreen(ORBIT_RADIUS))
+          if (!playerObjs.has(id)) {
+            playerObjs.set(id, {
+              goal:   new Goal(stage),
+              player: new Player(stage),
+            })
+          }
+          const objs = playerObjs.get(id)!
+          objs.goal.render(p, goalX, goalY, toScreen(GOAL_RADIUS))
+          objs.player.render(p, goalX, goalY, toScreen(ORBIT_RADIUS))
+        }
+
+        // Remove disconnected players
+        for (const id of playerObjs.keys()) {
+          if (!state.players[id]) {
+            playerObjs.delete(id)
+          }
+        }
       })
-
-      // Ball
-      const ball = new Ball(stage)
-      ball.render(mockBall, toScreen(ARENA_RADIUS * 0.025))
     })
 
     return () => {
