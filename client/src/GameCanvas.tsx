@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { Application, Container } from 'pixi.js'
+import { io } from 'socket.io-client'
 import { ARENA_RADIUS_RATIO, COLORS, getSlotAngles } from 'shared'
-import type { BallState, PlayerState } from 'shared'
+import type { BallState, GameState, PlayerState } from 'shared'
 import { Arena } from './game/Arena'
 import { Ball } from './game/Ball'
 import { Goal } from './game/Goal'
@@ -42,6 +43,11 @@ export default function GameCanvas() {
   useEffect(() => {
     if (appRef.current) return
 
+    const socket = io('http://localhost:3001')
+    socket.on('gameState', (state: GameState) => {
+      console.log('tick', state.tick)
+    })
+
     const app = new Application()
     appRef.current = app
 
@@ -78,6 +84,7 @@ export default function GameCanvas() {
     })
 
     return () => {
+      socket.disconnect()
       appRef.current = null
       app.destroy(true)
     }
