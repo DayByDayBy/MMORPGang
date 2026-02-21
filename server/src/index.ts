@@ -31,8 +31,11 @@ setInterval(() => {
       const saved = checkPaddleCollision(ballState, player, goalX, goalY)
       if (!saved) checkGoalCollision(ballState, player, goalX, goalY)
     }
+    io.emit('gameState', gsm.getState(ball.getState(), tick))
+  } else if (gsm.hasLobbyChanged()) {
+    gsm.consumeLobbyChange()
+    io.emit('gameState', gsm.getState(ball.getState(), tick))
   }
-  io.emit('gameState', gsm.getState(ball.getState(), tick))
 }, 1000 / TICK_RATE)
 
 io.on('connection', (socket) => {

@@ -13,6 +13,7 @@ export class GameStateManager {
   private slots: number[] = getSlotAngles(MAX_PLAYERS)
   private inputs: Map<string, PlayerInput> = new Map()
   private phase: GameState['phase'] = 'lobby'
+  private lobbyChanged = true
 
   addPlayer(socketId: string): void {
     const usedAngles = new Set(
@@ -31,11 +32,13 @@ export class GameStateManager {
       score:     0,
       connected: true,
     }
+    this.lobbyChanged = true
   }
 
   removePlayer(socketId: string): void {
     delete this.players[socketId]
     this.inputs.delete(socketId)
+    this.lobbyChanged = true
   }
 
   setInput(socketId: string, input: PlayerInput): void {
@@ -49,6 +52,7 @@ export class GameStateManager {
     const trimmed = (name ?? '').trim()
     if (!trimmed) return false
     player.name = trimmed.slice(0, 24)
+    this.lobbyChanged = true
     return true
   }
 
@@ -108,5 +112,13 @@ export class GameStateManager {
 
   getPlayers(): Record<string, PlayerState> {
     return this.players
+  }
+
+  hasLobbyChanged(): boolean {
+    return this.lobbyChanged
+  }
+
+  consumeLobbyChange(): void {
+    this.lobbyChanged = false
   }
 }

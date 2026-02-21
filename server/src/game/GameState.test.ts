@@ -152,6 +152,42 @@ describe('GameStateManager host authority', () => {
   })
 })
 
+describe('GameStateManager lobby tick suppression', () => {
+  it('hasLobbyChanged returns true initially', () => {
+    const gsm = new GameStateManager()
+    expect(gsm.hasLobbyChanged()).toBe(true)
+  })
+
+  it('hasLobbyChanged returns false after being consumed', () => {
+    const gsm = new GameStateManager()
+    gsm.consumeLobbyChange()
+    expect(gsm.hasLobbyChanged()).toBe(false)
+  })
+
+  it('hasLobbyChanged returns true after a player is added', () => {
+    const gsm = new GameStateManager()
+    gsm.consumeLobbyChange()
+    gsm.addPlayer('p1')
+    expect(gsm.hasLobbyChanged()).toBe(true)
+  })
+
+  it('hasLobbyChanged returns true after a player is removed', () => {
+    const gsm = new GameStateManager()
+    gsm.addPlayer('p1')
+    gsm.consumeLobbyChange()
+    gsm.removePlayer('p1')
+    expect(gsm.hasLobbyChanged()).toBe(true)
+  })
+
+  it('hasLobbyChanged returns true after a player name is set', () => {
+    const gsm = new GameStateManager()
+    gsm.addPlayer('p1')
+    gsm.consumeLobbyChange()
+    gsm.setPlayerName('p1', 'Alice')
+    expect(gsm.hasLobbyChanged()).toBe(true)
+  })
+})
+
 describe('GameStateManager playing-phase guards', () => {
   it('setPlayerName rejects during playing phase', () => {
     const gsm = new GameStateManager()
