@@ -45,7 +45,7 @@ const server = defineServer({
 
     app.use(express.static(clientBuildPath));
 
-    app.get("*", (_req: any, res: any) => {
+    app.get("/{*splat}", (_req: any, res: any) => {
       res.sendFile(path.join(clientBuildPath, "index.html"));
     });
   },
