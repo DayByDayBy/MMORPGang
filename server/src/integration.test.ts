@@ -78,6 +78,18 @@ function waitFor<T>(socket: TestClient, event: string): Promise<T> {
   return new Promise((resolve) => socket.once(event as any, resolve))
 }
 
+function waitForLobby(socket: TestClient, predicate: (s: LobbyState) => boolean): Promise<LobbyState> {
+  return new Promise((resolve) => {
+    const handler = (state: LobbyState) => {
+      if (predicate(state)) {
+        socket.off('lobbyState', handler)
+        resolve(state)
+      }
+    }
+    socket.on('lobbyState', handler)
+  })
+}
+
 function waitMs(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -219,10 +231,10 @@ describe('socket integration: disconnect updates and host migration', () => {
     const c1 = connectClient(port)
     const c2 = connectClient(port)
 
-    await waitFor<LobbyState>(c1, 'lobbyState')
-    await waitFor<LobbyState>(c2, 'lobbyState')
+    // wait until both are registered
+    await waitForLobby(c1, s => s.players.length === 2)
 
-    const lobbyAfterDisconnect = waitFor<LobbyState>(c1, 'lobbyState')
+    const lobbyAfterDisconnect = waitForLobby(c1, s => s.players.length === 1)
     c2.disconnect()
     const lobby = await lobbyAfterDisconnect
 

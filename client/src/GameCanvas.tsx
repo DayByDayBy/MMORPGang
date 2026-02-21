@@ -28,7 +28,10 @@ interface GameCanvasProps {
 
 export default function GameCanvas({ socket }: GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const appRef = useRef<Application | null>(null)
+  const appRef       = useRef<Application | null>(null)
+  const ballRef      = useRef<Ball | null>(null)
+  const playerObjsRef = useRef<Map<string, { goal: Goal; player: Player }>>(new Map())
+  const onGameStateRef = useRef<((state: GameState) => void) | null>(null)
 
   useInput(socket)
 
@@ -37,10 +40,6 @@ export default function GameCanvas({ socket }: GameCanvasProps) {
 
     const app = new Application()
     appRef.current = app
-
-    let ballObj: Ball | null = null
-    const playerObjs = new Map<string, { goal: Goal; player: Player }>()
-    let onGameState: ((state: GameState) => void) | null = null
 
     app.init({
       width:           W,
@@ -56,15 +55,16 @@ export default function GameCanvas({ socket }: GameCanvasProps) {
 
       new Arena(stage, CENTER_X, CENTER_Y, toScreen(ARENA_RADIUS))
 
-      onGameState = (state: GameState) => {
+      onGameStateRef.current = (state: GameState) => {
         // Ball — create on first state
-        if (!ballObj) ballObj = new Ball(stage)
-        ballObj.render(
+        if (!ballRef.current) ballRef.current = new Ball(stage)
+        ballRef.current.render(
           { x: wx(state.ball.x), y: wy(state.ball.y), vx: state.ball.vx, vy: state.ball.vy },
           toScreen(BALL_RADIUS),
         )
 
         // Players + Goals — create / update / remove
+        const playerObjs = playerObjsRef.current
         for (const [id, p] of Object.entries(state.players)) {
           const goalX = wx(Math.cos(p.goalAngle) * GOAL_RING_RADIUS)
           const goalY = wy(Math.sin(p.goalAngle) * GOAL_RING_RADIUS)
@@ -91,17 +91,19 @@ export default function GameCanvas({ socket }: GameCanvasProps) {
         }
       }
 
-      socket.on('gameState', onGameState)
+      socket.on('gameState', onGameStateRef.current)
     })
 
     return () => {
-      if (onGameState) socket.off('gameState', onGameState)
-      for (const objs of playerObjs.values()) {
+      if (onGameStateRef.current) socket.off('gameState', onGameStateRef.current)
+      for (const objs of playerObjsRef.current.values()) {
         objs.goal.destroy()
         objs.player.destroy()
       }
-      playerObjs.clear()
-      ballObj?.destroy()
+      playerObjsRef.current.clear()
+      ballRef.current?.destroy()
+      ballRef.current = null
+      onGameStateRef.current = null
       appRef.current = null
       app.destroy(true)
     }
