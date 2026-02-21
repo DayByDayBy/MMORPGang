@@ -46,3 +46,18 @@ export class Ball {
 }
 
 ```
+
+---
+
+server-side game logic is in:
+
+- `server/src/index.ts` — 60hz tick loop, socket wiring, physics dispatch
+- `server/src/game/Ball.ts` — ball state, movement, circular wall bounce
+- `server/src/game/GameState.ts` — player add/remove, slot assignment, input map, `applyInputs()`
+- `server/src/game/Physics.ts` — `checkPaddleCollision` + `checkGoalCollision`
+
+server uses coordinate system, centred at (0,0) with `ARENA_RADIUS = 400 * ARENA_RADIUS_RATIO`. client still renders a mock state — wiring server state to the renderer is next up
+
+note on `lives`: the goal collision logic decrements `player.lives` and resets the ball, but the lives mechanic might want rethinking?
+
+shrinking paddle arc, definitely, but also maybe it's more fun to play til you diconnect, to make the goal grow until you lose, or sth else actually good that i am too tired to think of right now
