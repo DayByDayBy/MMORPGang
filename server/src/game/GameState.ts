@@ -43,6 +43,7 @@ export class GameStateManager {
   }
 
   setPlayerName(socketId: string, name: string): boolean {
+    if (this.phase !== 'lobby') return false
     const player = this.players[socketId]
     if (!player) return false
     const trimmed = (name ?? '').trim()
@@ -60,6 +61,7 @@ export class GameStateManager {
   }
 
   canStartGame(): boolean {
+    if (this.phase !== 'lobby') return false
     const named = Object.values(this.players).filter(p => !!p.name?.trim())
     return named.length >= 2
   }

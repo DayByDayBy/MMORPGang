@@ -151,3 +151,45 @@ describe('GameStateManager host authority', () => {
     expect(lobby.hostId).toBe('p1')
   })
 })
+
+describe('GameStateManager playing-phase guards', () => {
+  it('setPlayerName rejects during playing phase', () => {
+    const gsm = new GameStateManager()
+    gsm.addPlayer('p1')
+    gsm.addPlayer('p2')
+    gsm.setPlayerName('p1', 'Alice')
+    gsm.setPlayerName('p2', 'Bob')
+    gsm.setPhase('playing')
+
+    const ok = gsm.setPlayerName('p1', 'NewName')
+    expect(ok).toBe(false)
+    // name unchanged
+    const lobby = gsm.getLobbyState()
+    expect(lobby.players.find(p => p.id === 'p1')!.name).toBe('Alice')
+  })
+
+  it('canStartGame returns false during playing phase', () => {
+    const gsm = new GameStateManager()
+    gsm.addPlayer('p1')
+    gsm.addPlayer('p2')
+    gsm.setPlayerName('p1', 'Alice')
+    gsm.setPlayerName('p2', 'Bob')
+    gsm.setPhase('playing')
+
+    expect(gsm.canStartGame()).toBe(false)
+  })
+
+  it('new connections during playing are added but not joined', () => {
+    const gsm = new GameStateManager()
+    gsm.addPlayer('p1')
+    gsm.addPlayer('p2')
+    gsm.setPlayerName('p1', 'Alice')
+    gsm.setPlayerName('p2', 'Bob')
+    gsm.setPhase('playing')
+
+    gsm.addPlayer('late')
+    const lobby = gsm.getLobbyState()
+    const latePlayer = lobby.players.find(p => p.id === 'late')!
+    expect(latePlayer.joined).toBe(false)
+  })
+})
