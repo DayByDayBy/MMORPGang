@@ -6,7 +6,7 @@ import Lobby from './Lobby'
 import type { GameSocket } from './socket'
 
 export default function App() {
-  const socket = useMemo(() => io('http://localhost:3001') as GameSocket, [])
+  const socket = useMemo(() => io(import.meta.env.VITE_SERVER_URL ?? 'http://localhost:3001') as GameSocket, [])
   const [name, setName] = useState('')
   const [phase, setPhase] = useState<GameState['phase']>('lobby')
   const [players, setPlayers] = useState<LobbyState['players']>([])

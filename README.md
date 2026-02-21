@@ -66,6 +66,16 @@ shrinking paddle arc, definitely, but also maybe rather than lives, it's more fu
 
 ---
 
+**environment variables**
+
+| Variable | Where | Default | Purpose |
+|---|---|---|---|
+| `VITE_SERVER_URL` | client `.env` | `http://localhost:3001` | Socket.io server endpoint |
+
+Local dev works without any `.env` file. To point at a remote server, create `client/.env` with `VITE_SERVER_URL=https://your-server.example.com`.
+
+---
+
 **coordinate system** — all physics now runs in canonical world space:
 
 - `WORLD_SIZE = 800`, arena centred at `(0, 0)`
