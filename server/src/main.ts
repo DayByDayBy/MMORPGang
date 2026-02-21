@@ -1,5 +1,6 @@
 // @ts-ignore
 import express from "express";
+import path from "path";
 import { defineServer, defineRoom } from "colyseus";
 import { playground } from "@colyseus/playground";
 import { ClassicGameRoom } from "./rooms/ClassicGameRoom";
@@ -7,6 +8,7 @@ import { GoalsGameRoom } from "./rooms/GoalsGameRoom";
 import { audioStore } from "./audioStore";
 
 const port = parseInt(process.env.PORT || "2567", 10);
+const clientBuildPath = path.resolve(__dirname, "../../client/dist");
 
 const server = defineServer({
   rooms: {
@@ -39,6 +41,12 @@ const server = defineServer({
     app.use("/playground", playground());
     app.get("/health", (_req: any, res: any) => {
       res.json({ status: "ok" });
+    });
+
+    app.use(express.static(clientBuildPath));
+
+    app.get("*", (_req: any, res: any) => {
+      res.sendFile(path.join(clientBuildPath, "index.html"));
     });
   },
 });

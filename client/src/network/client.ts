@@ -1,7 +1,8 @@
 import { Client } from "@colyseus/sdk";
 import type { GameMode } from "shared";
 
-export const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:2567";
+export const SERVER_URL = import.meta.env.VITE_SERVER_URL ||
+  (import.meta.env.DEV ? "http://localhost:2567" : window.location.origin);
 const COLYSEUS_URL = SERVER_URL;
 
 let clientInstance: Client | null = null;
