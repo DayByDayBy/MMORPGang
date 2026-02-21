@@ -48,6 +48,7 @@ export default function App() {
       name={name}
       players={players}
       isHost={hostId === socket.id}
+      hostId={hostId}
       onNameChange={setName}
       onJoin={joinGame}
       onStart={startGame}
