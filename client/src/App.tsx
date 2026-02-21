@@ -1,57 +1,41 @@
-import { useEffect, useMemo, useState } from 'react'
-import { io } from 'socket.io-client'
-import { mmorpong } from 'shared'
-import GameCanvas from './GameCanvas'
-import Lobby from './Lobby'
-import type { GameSocket } from './socket'
+import { useState } from 'react'
+import { MMOGame } from './games/MMO/MMOGame'
+
+type Mode = 'select' | 'mmo' | 'rpg'
 
 export default function App() {
-  const socket = useMemo(() => io(import.meta.env.VITE_SERVER_URL ?? 'http://localhost:3001') as GameSocket, [])
-  const [name, setName] = useState('')
-  const [phase, setPhase] = useState<mmorpong.GameState['phase']>('lobby')
-  const [players, setPlayers] = useState<mmorpong.LobbyState['players']>([])
-  const [hostId, setHostId] = useState<string | null>(null)
+  const [mode, setMode] = useState<Mode>('select')
 
-  useEffect(() => {
-    const onLobbyState = (state: mmorpong.LobbyState) => {
-      setPlayers(state.players)
-      setHostId(state.hostId)
-    }
-    const onGameState = (state: mmorpong.GameState) => setPhase(state.phase)
-
-    socket.on('lobbyState', onLobbyState)
-    socket.on('gameState', onGameState)
-
-    return () => {
-      socket.off('lobbyState', onLobbyState)
-      socket.off('gameState', onGameState)
-      socket.disconnect()
-    }
-  }, [socket])
-
-  const joinGame = () => {
-    const trimmed = name.trim()
-    if (!trimmed) return
-    socket.emit('joinGame', trimmed)
-  }
-
-  const startGame = () => {
-    socket.emit('startGame')
-  }
-
-  if (phase === 'playing') {
-    return <GameCanvas socket={socket} />
-  }
+  if (mode === 'mmo') return <MMOGame onExit={() => setMode('select')} />
+  if (mode === 'rpg') return <div>RPG mode coming soon</div>
 
   return (
-    <Lobby
-      name={name}
-      players={players}
-      isHost={hostId === socket.id}
-      hostId={hostId}
-      onNameChange={setName}
-      onJoin={joinGame}
-      onStart={startGame}
-    />
+    <div style={{
+      minHeight: '100vh',
+      display: 'grid',
+      placeItems: 'center',
+      background: '#03020a',
+      fontFamily: '"JetBrains Mono", "Fira Mono", "Courier New", monospace',
+      color: '#e0dff5',
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <h1 style={{ color: '#00ffe7', letterSpacing: '0.12em', marginBottom: 48 }}>MMORPGang</h1>
+        <div style={{ display: 'flex', gap: 24 }}>
+          <button onClick={() => setMode('mmo')} style={btnStyle}>MMO</button>
+          <button onClick={() => setMode('rpg')} style={btnStyle}>RPG</button>
+        </div>
+      </div>
+    </div>
   )
+}
+
+const btnStyle: React.CSSProperties = {
+  padding: '16px 48px',
+  background: 'transparent',
+  border: '1px solid #00ffe7',
+  color: '#00ffe7',
+  fontFamily: 'inherit',
+  fontSize: 16,
+  letterSpacing: '0.1em',
+  cursor: 'pointer',
 }
