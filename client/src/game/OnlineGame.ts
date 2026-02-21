@@ -5,6 +5,7 @@ import { SERVER_URL } from "../network/client";
 import { Arena } from "./Arena";
 import { Paddle } from "./Paddle";
 import { Ball } from "./Ball";
+import { AudioManager } from "./AudioManager";
 
 interface RemotePlayer {
   sessionId: string;
@@ -28,7 +29,7 @@ export class OnlineGame {
   private keys = new Set<string>();
   private onGameOver?: (winnerName: string) => void;
   private destroyed = false;
-  private audioCtx: AudioContext | null = null;
+  private audio = new AudioManager();
   private playerSounds = new Map<string, AudioBuffer>();
   private lastSentPaddlePosition = -1;
 
@@ -71,6 +72,13 @@ export class OnlineGame {
     });
 
     this.room.onMessage("game_over", (data: { winnerId: string; winnerName: string }) => {
+      this.audio.stopSoundtrack();
+      const isMe = data.winnerId === this.room.sessionId;
+      if (isMe) {
+        this.audio.playWin();
+      } else {
+        this.audio.playGameEnd();
+      }
       this.onGameOver?.(data.winnerName);
     });
 
@@ -90,6 +98,10 @@ export class OnlineGame {
     window.addEventListener("keyup", this.onKeyUp);
 
     this.app.ticker.add(this.renderLoop);
+
+    await this.audio.init();
+    await this.audio.resume();
+    this.audio.startSoundtrack();
   }
 
   private addPlayer(sessionId: string, p: any) {
@@ -201,15 +213,16 @@ export class OnlineGame {
 
   private async fetchPlayerAudio(sessionId: string) {
     try {
+      const ctx = this.audio.audioContext;
+      if (!ctx) return;
+
       const resp = await fetch(`${SERVER_URL}/api/audio/${this.room.roomId}/${sessionId}`);
       if (!resp.ok) return;
 
       const { audio } = await resp.json();
-      if (!this.audioCtx) this.audioCtx = new AudioContext();
-
       const binResp = await fetch(audio);
       const buf = await binResp.arrayBuffer();
-      const decoded = await this.audioCtx.decodeAudioData(buf);
+      const decoded = await ctx.decodeAudioData(buf);
       this.playerSounds.set(sessionId, decoded);
     } catch {
       // ignore fetch/decode errors
@@ -218,12 +231,16 @@ export class OnlineGame {
 
   private playPaddleSound(sessionId: string) {
     const buffer = this.playerSounds.get(sessionId);
-    if (!buffer || !this.audioCtx) return;
+    const ctx = this.audio.audioContext;
 
-    const source = this.audioCtx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(this.audioCtx.destination);
-    source.start();
+    if (buffer && ctx) {
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start();
+    } else {
+      this.audio.playBoop();
+    }
   }
 
   destroy() {
@@ -234,6 +251,6 @@ export class OnlineGame {
     this.world.destroy({ children: true });
     this.hud.destroy({ children: true });
     this.room.removeAllListeners();
-    this.audioCtx?.close();
+    this.audio.destroy();
   }
 }

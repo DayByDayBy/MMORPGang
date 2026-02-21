@@ -4,6 +4,7 @@ import type { Vector2, Edge } from "shared";
 import { Arena } from "./Arena";
 import { Paddle } from "./Paddle";
 import { Ball } from "./Ball";
+import { AudioManager } from "./AudioManager";
 
 interface AIState {
   aggressiveness: number; // 0..1 — how much they overshoot to apply spin
@@ -35,6 +36,7 @@ export class Game {
   private onGameOver?: (winnerName: string) => void;
   private ballHitDistSq = 0;
   private hudDirty = true;
+  private audio = new AudioManager();
 
   constructor(app: Application) {
     this.app = app;
@@ -91,6 +93,10 @@ export class Game {
     this.launchBall();
     this.running = true;
     this.app.ticker.add(this.gameLoop);
+
+    await this.audio.init();
+    await this.audio.resume();
+    this.audio.startSoundtrack();
   }
 
   private onKeyDown = (e: KeyboardEvent) => this.keys.add(e.key.toLowerCase());
@@ -191,6 +197,7 @@ export class Game {
         this.ball.reflect(edge.normal);
         this.ball.addSpin(player.paddle.getTangentVelocity());
         this.pushBallIn(edge);
+        this.audio.playBoop();
         continue;
       }
 
@@ -263,6 +270,13 @@ export class Game {
     }
     if (aliveCount <= 1) {
       this.running = false;
+      this.audio.stopSoundtrack();
+      const isLocalPlayerWin = lastAlive === this.players[0];
+      if (isLocalPlayerWin) {
+        this.audio.playWin();
+      } else {
+        this.audio.playGameEnd();
+      }
       this.onGameOver?.(lastAlive?.name ?? "Nobody");
     }
   }
@@ -301,5 +315,6 @@ export class Game {
     window.removeEventListener("keyup", this.onKeyUp);
     this.world.destroy({ children: true });
     this.hud.destroy({ children: true });
+    this.audio.destroy();
   }
 }
