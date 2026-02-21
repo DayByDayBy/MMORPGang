@@ -114,8 +114,7 @@ export class OnlineGame {
   private syncState() {
     const state = this.room.state;
 
-    this.ball.x = state.ball.x;
-    this.ball.y = state.ball.y;
+    this.ball.syncState(state.ball);
 
     state.players.forEach((p: any, sessionId: string) => {
       const rp = this.players.get(sessionId);
@@ -136,6 +135,7 @@ export class OnlineGame {
 
   private renderLoop = () => {
     if (this.destroyed) return;
+    this.ball.interpolate(this.app.ticker.deltaMS);
     this.handleInput();
   };
 
