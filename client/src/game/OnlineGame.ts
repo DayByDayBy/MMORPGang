@@ -136,7 +136,7 @@ export class OnlineGame {
 
   private renderLoop = () => {
     if (this.destroyed) return;
-    this.ball.interpolate(this.app.ticker.deltaMS);
+    this.ball.interpolate();
     this.handleInput();
   };
 

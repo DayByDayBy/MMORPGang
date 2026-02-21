@@ -1,16 +1,13 @@
 import { Graphics, Container } from "pixi.js";
-import { BALL_RADIUS, BALL_SPEED, MAX_BALL_SPEED, TICK_RATE } from "shared";
+import { BALL_RADIUS, BALL_SPEED, MAX_BALL_SPEED } from "shared";
 import type { Vector2 } from "shared";
 
 export class Ball extends Container {
   public velocity: Vector2;
   public radius = BALL_RADIUS;
   private gfx = new Graphics();
-
-  private lerpPrev = { x: 0, y: 0 };
-  private lerpTarget = { x: 0, y: 0 };
-  private lerpT = 1;
-  private readonly tickMs = 1000 / TICK_RATE;
+  private serverX = 0;
+  private serverY = 0;
 
   constructor() {
     super();
@@ -64,18 +61,12 @@ export class Ball extends Container {
   }
 
   public syncState(serverBall: { x: number; y: number }) {
-    this.lerpPrev.x = this.x;
-    this.lerpPrev.y = this.y;
-    this.lerpTarget.x = serverBall.x;
-    this.lerpTarget.y = serverBall.y;
-    this.lerpT = 0;
+    this.serverX = serverBall.x;
+    this.serverY = serverBall.y;
   }
 
-  public interpolate(deltaMs: number) {
-    if (this.lerpT >= 1) return;
-    this.lerpT = Math.min(1, this.lerpT + deltaMs / this.tickMs);
-    const t = this.lerpT;
-    this.x = this.lerpPrev.x + (this.lerpTarget.x - this.lerpPrev.x) * t;
-    this.y = this.lerpPrev.y + (this.lerpTarget.y - this.lerpPrev.y) * t;
+  public interpolate() {
+    this.x += (this.serverX - this.x) * 0.5;
+    this.y += (this.serverY - this.y) * 0.5;
   }
 }
