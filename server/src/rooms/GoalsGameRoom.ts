@@ -144,6 +144,21 @@ export class GoalsGameRoom extends BaseGameRoom {
 
   private resetBall() {
     this.resetBallToCenter();
-    this.launchBallRandom();
+
+    const alivePlayers: GoalsPlayerSchema[] = [];
+    this.state.players.forEach((p) => {
+      if (!p.eliminated) alivePlayers.push(p);
+    });
+
+    if (alivePlayers.length > 0) {
+      const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+      const goalX = Math.cos(target.goalAngle) * GOALS_GOAL_RING_RADIUS;
+      const goalY = Math.sin(target.goalAngle) * GOALS_GOAL_RING_RADIUS;
+      const dist = Math.sqrt(goalX * goalX + goalY * goalY) || 1;
+      this.ballVx = (goalX / dist) * BALL_SPEED;
+      this.ballVy = (goalY / dist) * BALL_SPEED;
+    } else {
+      this.launchBallRandom();
+    }
   }
 }

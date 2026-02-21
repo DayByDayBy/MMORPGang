@@ -260,11 +260,12 @@ export class GoalsGame {
   }
 
   private launchBall() {
-    this.ball.x = 0;
-    this.ball.y = 0;
-    const angle = Math.random() * Math.PI * 2;
-    this.ball.velocity.x = Math.cos(angle) * BALL_SPEED;
-    this.ball.velocity.y = Math.sin(angle) * BALL_SPEED;
+    const alive = this.players.filter((p) => !p.eliminated);
+    if (alive.length === 0) return;
+    const target = alive[Math.floor(Math.random() * alive.length)];
+    const goalX = Math.cos(target.goalAngle) * GOALS_GOAL_RING_RADIUS;
+    const goalY = Math.sin(target.goalAngle) * GOALS_GOAL_RING_RADIUS;
+    this.ball.launch({ x: goalX, y: goalY });
   }
 
   private checkWinCondition() {
