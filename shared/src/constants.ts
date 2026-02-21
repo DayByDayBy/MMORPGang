@@ -1,7 +1,7 @@
 export const MAX_PLAYERS = 12;
 export const MIN_PLAYERS = 2;
 export const DEFAULT_LIVES = 3;
-export const TICK_RATE = 30;
+export const TICK_RATE = 60;
 export const ARENA_RADIUS = 350;
 export const BALL_RADIUS = 8;
 export const BALL_SPEED = 5;
