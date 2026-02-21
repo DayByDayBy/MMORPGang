@@ -54,6 +54,7 @@ export interface BallState {
 
 export interface PlayerState {
   id:         string
+  name?:      string
   angle:      number   // current paddle angle around their orbit
   goalAngle:  number   // this player's slot angle around the arena
   paddleArc:  number   // current arc width in radians
@@ -73,6 +74,23 @@ export interface GameState {
 export interface PlayerInput {
   left:  boolean
   right: boolean
+}
+
+// ─── Lobby ─────────────────────────────────────────────────────────────────────
+export interface LobbyState {
+  players: { id: string; name: string }[]
+}
+
+// ─── Socket event contracts ────────────────────────────────────────────────────
+export interface ServerToClientEvents {
+  gameState:  (state: GameState) => void
+  lobbyState: (state: LobbyState) => void
+}
+
+export interface ClientToServerEvents {
+  playerInput: (input: PlayerInput) => void
+  joinGame:    (name: string) => void
+  startGame:   () => void
 }
 
 // ─── Math utilities (pure, no pixi dependency) ────────────────────────────────

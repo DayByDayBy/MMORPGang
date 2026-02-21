@@ -6,13 +6,13 @@ import {
   ORBIT_SPEED,
   ORBIT_ACCEL,
 } from 'shared'
-import type { GameState, PlayerState, BallState, PlayerInput } from 'shared'
+import type { GameState, PlayerState, BallState, PlayerInput, LobbyState } from 'shared'
 
 export class GameStateManager {
   private players: Record<string, PlayerState> = {}
   private slots: number[] = getSlotAngles(MAX_PLAYERS)
   private inputs: Map<string, PlayerInput> = new Map()
-  private tick = 0
+  private phase: GameState['phase'] = 'lobby'
 
   addPlayer(socketId: string): void {
     const usedAngles = new Set(
@@ -23,6 +23,7 @@ export class GameStateManager {
 
     this.players[socketId] = {
       id:        socketId,
+      name:      '',
       angle:     freeSlot,
       goalAngle: freeSlot,
       paddleArc: PADDLE_ARC,
@@ -41,6 +42,36 @@ export class GameStateManager {
     this.inputs.set(socketId, input)
   }
 
+  setPlayerName(socketId: string, name: string): boolean {
+    const player = this.players[socketId]
+    if (!player) return false
+    const trimmed = (name ?? '').trim()
+    if (!trimmed) return false
+    player.name = trimmed.slice(0, 24)
+    return true
+  }
+
+  setPhase(phase: GameState['phase']): void {
+    this.phase = phase
+  }
+
+  getPhase(): GameState['phase'] {
+    return this.phase
+  }
+
+  canStartGame(): boolean {
+    return Object.keys(this.players).length >= 2
+  }
+
+  getLobbyState(): LobbyState {
+    return {
+      players: Object.values(this.players).map((p) => ({
+        id: p.id,
+        name: p.name?.trim() || p.id.slice(0, 6),
+      })),
+    }
+  }
+
   applyInputs(): void {
     for (const [id, player] of Object.entries(this.players)) {
       const input = this.inputs.get(id)
@@ -57,7 +88,7 @@ export class GameStateManager {
       players: { ...this.players },
       ball,
       tick,
-      phase: 'playing',
+      phase: this.phase,
     }
   }
 
