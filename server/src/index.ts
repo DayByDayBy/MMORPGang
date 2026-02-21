@@ -17,6 +17,7 @@ const gsm  = new GameStateManager()
 
 setInterval(() => {
   tick++
+  gsm.applyInputs()
   ball.update()
   io.emit('gameState', gsm.getState(ball.getState(), tick))
 }, 1000 / TICK_RATE)
@@ -24,6 +25,7 @@ setInterval(() => {
 io.on('connection', (socket) => {
   console.log('client connected:', socket.id)
   gsm.addPlayer(socket.id)
+  socket.on('playerInput', (input) => gsm.setInput(socket.id, input))
   socket.on('disconnect', () => {
     console.log('client disconnected:', socket.id)
     gsm.removePlayer(socket.id)

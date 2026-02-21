@@ -3,12 +3,15 @@ import {
   MAX_PLAYERS,
   STARTING_LIVES,
   PADDLE_ARC,
+  ORBIT_SPEED,
+  ORBIT_ACCEL,
 } from 'shared'
-import type { GameState, PlayerState, BallState } from 'shared'
+import type { GameState, PlayerState, BallState, PlayerInput } from 'shared'
 
 export class GameStateManager {
   private players: Record<string, PlayerState> = {}
   private slots: number[] = getSlotAngles(MAX_PLAYERS)
+  private inputs: Map<string, PlayerInput> = new Map()
   private tick = 0
 
   addPlayer(socketId: string): void {
@@ -31,6 +34,22 @@ export class GameStateManager {
 
   removePlayer(socketId: string): void {
     delete this.players[socketId]
+    this.inputs.delete(socketId)
+  }
+
+  setInput(socketId: string, input: PlayerInput): void {
+    this.inputs.set(socketId, input)
+  }
+
+  applyInputs(): void {
+    for (const [id, player] of Object.entries(this.players)) {
+      const input = this.inputs.get(id)
+      if (!input) continue
+      let target = player.angle
+      if (input.left)  target -= ORBIT_SPEED
+      if (input.right) target += ORBIT_SPEED
+      player.angle += (target - player.angle) * ORBIT_ACCEL
+    }
   }
 
   getState(ball: BallState, tick: number): GameState {

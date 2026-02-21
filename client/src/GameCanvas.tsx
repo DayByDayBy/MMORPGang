@@ -48,6 +48,20 @@ export default function GameCanvas() {
       console.log('tick', state.tick)
     })
 
+    const input = { left: false, right: false }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft'  || e.key === 'a') input.left  = true
+      if (e.key === 'ArrowRight' || e.key === 'd') input.right = true
+      socket.emit('playerInput', { ...input })
+    }
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft'  || e.key === 'a') input.left  = false
+      if (e.key === 'ArrowRight' || e.key === 'd') input.right = false
+      socket.emit('playerInput', { ...input })
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup',   onKeyUp)
+
     const app = new Application()
     appRef.current = app
 
@@ -84,6 +98,8 @@ export default function GameCanvas() {
     })
 
     return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup',   onKeyUp)
       socket.disconnect()
       appRef.current = null
       app.destroy(true)
