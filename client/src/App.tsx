@@ -42,7 +42,7 @@ export const App = () => {
     try {
       setError("");
       const room = await joinRoom(roomId, name);
-      const gameMode = ((room.state as any)?.mode as GameMode) || "classic";
+      const gameMode: GameMode = room.name === "goals_room" ? "goals" : "classic";
       setState({ screen: "waiting", room: room as Room<BaseGameState>, gameMode });
     } catch (e: any) {
       setError(e.message || "Failed to join room");
