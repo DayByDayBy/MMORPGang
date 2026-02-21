@@ -6,11 +6,15 @@ import {
   GOALS_GOAL_RING_RADIUS,
   GOALS_GOAL_RADIUS,
   GOALS_ORBIT_RADIUS,
+  GOALS_ORBIT_RADIUS_MIN,
+  GOALS_ORBIT_RADIUS_MAX,
+  GOALS_ORBIT_RADIUS_SPEED,
   GOALS_PADDLE_ARC,
   GOALS_ORBIT_SPEED,
   GOALS_ORBIT_ACCEL,
   GOALS_MAX_BALL_SPEED,
   GOALS_LIVES,
+  GOALS_BALL_SPAWN_INTERVAL,
   bounceOffCircularWall,
   checkGoalsPaddleCollision,
   checkGoalsGoalCollision,
@@ -36,6 +40,7 @@ interface PlayerState {
   goal: GoalsGoal;
   goalAngle: number;
   paddleAngle: number;
+  orbitRadius: number;
   lives: number;
   eliminated: boolean;
   name: string;
@@ -45,7 +50,7 @@ interface PlayerState {
 export class GoalsGame {
   private app: Application;
   private arena!: GoalsArena;
-  private ball!: Ball;
+  private balls: Ball[] = [];
   private players: PlayerState[] = [];
   private world = new Container();
   private hud = new Container();
@@ -56,6 +61,7 @@ export class GoalsGame {
   private onGameOver?: (winnerName: string | null) => void;
   private hudDirty = true;
   private audio = new AudioManager();
+  private ballSpawnTimer = 0;
 
   constructor(app: Application) {
     this.app = app;
@@ -76,9 +82,6 @@ export class GoalsGame {
     this.arena = new GoalsArena(GOALS_ARENA_RADIUS);
     this.world.addChild(this.arena);
 
-    this.ball = new Ball();
-    this.world.addChild(this.ball);
-
     const slots = getGoalsSlotAngles(playerCount);
 
     for (let i = 0; i < playerCount; i++) {
@@ -98,6 +101,7 @@ export class GoalsGame {
         goal,
         goalAngle,
         paddleAngle: goalAngle,
+        orbitRadius: GOALS_ORBIT_RADIUS,
         lives: GOALS_LIVES,
         eliminated: false,
         name: i === 0 ? playerName : `Bot ${i}`,
@@ -113,7 +117,12 @@ export class GoalsGame {
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
     this.buildHud();
-    this.launchBall();
+    
+    const initialBalls = Math.max(1, playerCount - 1);
+    for (let i = 0; i < initialBalls; i++) {
+      this.launchBall();
+    }
+    
     this.running = true;
     this.app.ticker.add(this.gameLoop);
 
@@ -132,12 +141,20 @@ export class GoalsGame {
       this.tickAccumulator -= 1;
       this.handleInput();
       this.updateAI();
-      this.ball.update();
+      for (const ball of this.balls) {
+        ball.update();
+      }
       this.checkCollisions();
       this.renderPlayers();
       if (this.hudDirty) {
         this.updateHud();
         this.hudDirty = false;
+      }
+      
+      this.ballSpawnTimer++;
+      if (this.ballSpawnTimer >= GOALS_BALL_SPAWN_INTERVAL) {
+        this.ballSpawnTimer = 0;
+        this.launchBall();
       }
     }
   };
@@ -151,6 +168,14 @@ export class GoalsGame {
     if (this.keys.has("d") || this.keys.has("arrowright")) target += GOALS_ORBIT_SPEED;
     player.paddleAngle += (target - player.paddleAngle) * GOALS_ORBIT_ACCEL;
     player.paddle.paddleAngle = player.paddleAngle;
+
+    if (this.keys.has("w") || this.keys.has("arrowup")) {
+      player.orbitRadius = Math.min(player.orbitRadius + GOALS_ORBIT_RADIUS_SPEED, GOALS_ORBIT_RADIUS_MAX);
+    }
+    if (this.keys.has("s") || this.keys.has("arrowdown")) {
+      player.orbitRadius = Math.max(player.orbitRadius - GOALS_ORBIT_RADIUS_SPEED, GOALS_ORBIT_RADIUS_MIN);
+    }
+    player.paddle.orbitRadius = player.orbitRadius;
   }
 
   private updateAI() {
@@ -161,11 +186,22 @@ export class GoalsGame {
       const goalX = Math.cos(player.goalAngle) * GOALS_GOAL_RING_RADIUS;
       const goalY = Math.sin(player.goalAngle) * GOALS_GOAL_RING_RADIUS;
 
-      const dx = this.ball.x - goalX;
-      const dy = this.ball.y - goalY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
+      let nearestDist = Infinity;
+      let nearestBall: Ball | null = null;
+      
+      for (const ball of this.balls) {
+        const dx = ball.x - goalX;
+        const dy = ball.y - goalY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestBall = ball;
+        }
+      }
 
-      if (dist < GOALS_ARENA_RADIUS * 0.6) {
+      if (nearestBall && nearestDist < GOALS_ARENA_RADIUS * 0.6) {
+        const dx = nearestBall.x - goalX;
+        const dy = nearestBall.y - goalY;
         const ballAngle = Math.atan2(dy, dx);
         let target = player.paddleAngle;
         target += (ballAngle - target) * 0.15;
@@ -185,65 +221,68 @@ export class GoalsGame {
   }
 
   private checkCollisions() {
-    const ballState: GoalsBallState = {
-      x: this.ball.x,
-      y: this.ball.y,
-      vx: this.ball.velocity.x,
-      vy: this.ball.velocity.y,
-    };
+    for (const ball of this.balls) {
+      const ballState: GoalsBallState = {
+        x: ball.x,
+        y: ball.y,
+        vx: ball.velocity.x,
+        vy: ball.velocity.y,
+      };
 
-    bounceOffCircularWall(ballState, GOALS_ARENA_RADIUS, BALL_RADIUS);
+      bounceOffCircularWall(ballState, GOALS_ARENA_RADIUS, BALL_RADIUS);
 
-    for (let i = 0; i < this.players.length; i++) {
-      const player = this.players[i];
-      if (player.eliminated) continue;
+      for (let i = 0; i < this.players.length; i++) {
+        const player = this.players[i];
+        if (player.eliminated) continue;
 
-      const goalX = Math.cos(player.goalAngle) * GOALS_GOAL_RING_RADIUS;
-      const goalY = Math.sin(player.goalAngle) * GOALS_GOAL_RING_RADIUS;
+        const goalX = Math.cos(player.goalAngle) * GOALS_GOAL_RING_RADIUS;
+        const goalY = Math.sin(player.goalAngle) * GOALS_GOAL_RING_RADIUS;
 
-      const saved = checkGoalsPaddleCollision(
-        ballState, player.paddleAngle, GOALS_PADDLE_ARC,
-        goalX, goalY, GOALS_ORBIT_RADIUS, BALL_RADIUS,
-      );
+        const saved = checkGoalsPaddleCollision(
+          ballState, player.paddleAngle, GOALS_PADDLE_ARC,
+          goalX, goalY, player.orbitRadius, BALL_RADIUS,
+        );
 
-      if (saved) {
-        this.audio.playBoop();
-      } else if (checkGoalsGoalCollision(ballState, goalX, goalY, GOALS_GOAL_RADIUS, GOALS_ORBIT_RADIUS, BALL_RADIUS)) {
-        player.lives--;
-        this.hudDirty = true;
+        if (saved) {
+          this.audio.playBoomp();
+        } else if (checkGoalsGoalCollision(ballState, goalX, goalY, GOALS_GOAL_RADIUS, GOALS_ORBIT_RADIUS, BALL_RADIUS)) {
+          player.lives--;
+          this.hudDirty = true;
 
-        if (player.lives <= 0) {
-          player.eliminated = true;
-          player.paddle.visible = false;
+          if (player.lives <= 0) {
+            player.eliminated = true;
+            player.paddle.visible = false;
+            player.goal.visible = false;
 
-          if (player === this.players[0]) {
-            this.running = false;
-            this.audio.stopSoundtrack();
-            this.audio.playGameEnd();
-            this.onGameOver?.(null);
-            this.applyBallState(ballState);
-            return;
+            if (player === this.players[0]) {
+              this.running = false;
+              this.audio.stopSoundtrack();
+              this.audio.playGameEnd();
+              this.onGameOver?.(null);
+              this.applyBallState(ball, ballState);
+              return;
+            }
+
+            this.checkWinCondition();
           }
-
-          this.checkWinCondition();
+          this.launchBall();
+          break;
         }
-        this.launchBall();
-        return;
       }
+
+      const clamped = clampSpeed(ballState.vx, ballState.vy, GOALS_MAX_BALL_SPEED);
+      ballState.vx = clamped.x;
+      ballState.vy = clamped.y;
+
+      this.applyBallState(ball, ballState);
     }
-
-    const clamped = clampSpeed(ballState.vx, ballState.vy, GOALS_MAX_BALL_SPEED);
-    ballState.vx = clamped.x;
-    ballState.vy = clamped.y;
-
-    this.applyBallState(ballState);
   }
 
-  private applyBallState(bs: GoalsBallState) {
-    this.ball.x = bs.x;
-    this.ball.y = bs.y;
-    this.ball.velocity.x = bs.vx;
-    this.ball.velocity.y = bs.vy;
+  private applyBallState(ball: Ball, bs: GoalsBallState) {
+    ball.x = bs.x;
+    ball.y = bs.y;
+    ball.velocity.x = bs.vx;
+    ball.velocity.y = bs.vy;
   }
 
   private renderPlayers() {
@@ -265,7 +304,11 @@ export class GoalsGame {
     const target = alive[Math.floor(Math.random() * alive.length)];
     const goalX = Math.cos(target.goalAngle) * GOALS_GOAL_RING_RADIUS;
     const goalY = Math.sin(target.goalAngle) * GOALS_GOAL_RING_RADIUS;
-    this.ball.launch({ x: goalX, y: goalY });
+    
+    const ball = new Ball();
+    this.world.addChild(ball);
+    this.balls.push(ball);
+    ball.launch({ x: goalX, y: goalY });
   }
 
   private checkWinCondition() {

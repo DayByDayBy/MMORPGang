@@ -280,7 +280,7 @@ export class GoalsOnlineGame {
       source.connect(ctx.destination);
       source.start();
     } else {
-      this.audio.playBoop();
+      this.audio.playBoomp();
     }
   }
 
