@@ -1,19 +1,22 @@
+// @ts-ignore
 import express from "express";
 import { defineServer, defineRoom } from "colyseus";
 import { playground } from "@colyseus/playground";
-import { GameRoom } from "./rooms/GameRoom";
+import { ClassicGameRoom } from "./rooms/ClassicGameRoom";
+import { GoalsGameRoom } from "./rooms/GoalsGameRoom";
 import { audioStore } from "./audioStore";
 
 const port = parseInt(process.env.PORT || "2567", 10);
 
 const server = defineServer({
   rooms: {
-    game_room: defineRoom(GameRoom),
+    classic_room: defineRoom(ClassicGameRoom),
+    goals_room: defineRoom(GoalsGameRoom),
   },
   express: (app) => {
     app.use(express.json({ limit: "1mb" }));
 
-    app.post("/api/audio", (req, res) => {
+    app.post("/api/audio", (req: any, res: any) => {
       const { roomId, sessionId, audio } = req.body;
       if (!roomId || !sessionId || !audio || typeof audio !== "string") {
         res.status(400).json({ error: "missing fields" });
@@ -23,7 +26,7 @@ const server = defineServer({
       res.json({ ok: true });
     });
 
-    app.get("/api/audio/:roomId/:sessionId", (req, res) => {
+    app.get("/api/audio/:roomId/:sessionId", (req: any, res: any) => {
       const key = `${req.params.roomId}:${req.params.sessionId}`;
       const data = audioStore.get(key);
       if (!data) {
@@ -34,7 +37,7 @@ const server = defineServer({
     });
 
     app.use("/playground", playground());
-    app.get("/health", (_req, res) => {
+    app.get("/health", (_req: any, res: any) => {
       res.json({ status: "ok" });
     });
   },

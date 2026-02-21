@@ -1,14 +1,14 @@
 import { Graphics, Container } from "pixi.js";
-import { PLAYER_COLORS, ARENA_RADIUS, computeEdges, computeVertices, getArenaConfig } from "shared";
+import { PLAYER_COLORS, CLASSIC_ARENA_RADIUS, computeEdges, computeVertices, getArenaConfig } from "shared";
 import type { Vector2, Edge, ArenaConfig } from "shared";
 
-export class Arena extends Container {
+export class ClassicArena extends Container {
   public edges: Edge[] = [];
   public config: ArenaConfig;
   public radius: number;
   private bg = new Graphics();
 
-  constructor(playerCount: number, radius: number = ARENA_RADIUS) {
+  constructor(playerCount: number, radius: number = CLASSIC_ARENA_RADIUS) {
     super();
     this.config = getArenaConfig(playerCount);
     this.radius = radius;
@@ -17,10 +17,8 @@ export class Arena extends Container {
     this.draw(playerCount);
   }
 
-  private draw(playerCount: number) {
+  private draw(_playerCount: number) {
     this.bg.clear();
-
-    const assigned = new Set(this.config.edgeAssignments);
 
     for (let i = 0; i < this.edges.length; i++) {
       const edge = this.edges[i];

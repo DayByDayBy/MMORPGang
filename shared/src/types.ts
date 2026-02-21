@@ -1,3 +1,5 @@
+export type GameMode = "classic" | "goals";
+
 export interface Vector2 {
   x: number;
   y: number;
@@ -12,29 +14,58 @@ export interface Edge {
   length: number;
 }
 
+// --- Ball (shared) ---
+
 export interface BallState {
   x: number;
   y: number;
 }
 
-export interface PlayerState {
+// --- Base (shared by both modes) ---
+
+export interface BasePlayerState {
   sessionId: string;
   name: string;
-  colorIndex: number;
-  edgeIndex: number;
   lives: number;
   eliminated: boolean;
   ready: boolean;
+}
+
+export interface BaseGameState {
+  phase: string;
+  mode: string;
+  winnerId: string;
+  winnerName: string;
+  ball: BallState;
+  maxPlayers: number;
+}
+
+// --- Classic mode ---
+
+export interface ClassicPlayerState extends BasePlayerState {
+  colorIndex: number;
+  edgeIndex: number;
   paddlePosition: number;
 }
 
-export interface GameState {
-  phase: string;
-  winnerId: string;
-  winnerName: string;
-  players: Map<string, PlayerState>;
-  ball: BallState;
+export interface ClassicGameState extends BaseGameState {
+  players: Map<string, ClassicPlayerState>;
   arenaRadius: number;
   numSides: number;
-  maxPlayers: number;
+}
+
+// --- Goals mode ---
+
+export interface GoalsPlayerState extends BasePlayerState {
+  goalAngle: number;
+  paddleAngle: number;
+  colorIndex: number;
+}
+
+export interface GoalsGameState extends BaseGameState {
+  players: Map<string, GoalsPlayerState>;
+  arenaRadius: number;
+  goalRingRadius: number;
+  goalRadius: number;
+  orbitRadius: number;
 }

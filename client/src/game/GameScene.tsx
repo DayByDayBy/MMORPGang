@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Application } from "pixi.js";
-import type { GameState } from "shared";
+import type { GameMode, BaseGameState } from "shared";
 import type { Room } from "@colyseus/sdk";
-import { Game } from "./Game";
-import { OnlineGame } from "./OnlineGame";
+import { ClassicGame } from "./classic/ClassicGame";
+import { ClassicOnlineGame } from "./classic/ClassicOnlineGame";
+import { GoalsGame } from "./goals/GoalsGame";
+import { GoalsOnlineGame } from "./goals/GoalsOnlineGame";
 import "./GameScene.css";
 
 interface LocalGameProps {
   mode: "local";
+  gameMode: GameMode;
   playerCount: number;
   playerName: string;
   onExit: () => void;
@@ -15,7 +18,8 @@ interface LocalGameProps {
 
 interface OnlineGameProps {
   mode: "online";
-  room: Room<GameState>;
+  gameMode: GameMode;
+  room: Room<BaseGameState>;
   onExit: () => void;
 }
 
@@ -33,6 +37,7 @@ export const GameScene = (props: GameSceneProps) => {
 
   const onExit = props.onExit;
   const mode = props.mode;
+  const gameMode = props.gameMode;
   const playerCount = mode === "local" ? props.playerCount : 0;
   const playerName = mode === "local" ? props.playerName : "";
   const room = mode === "online" ? props.room : null;
@@ -42,7 +47,7 @@ export const GameScene = (props: GameSceneProps) => {
 
     let cancelled = false;
     const app = new Application();
-    let game: Game | OnlineGame | null = null;
+    let game: ClassicGame | ClassicOnlineGame | GoalsGame | GoalsOnlineGame | null = null;
 
     setEndState(null);
 
@@ -59,13 +64,24 @@ export const GameScene = (props: GameSceneProps) => {
 
       el.appendChild(app.canvas);
 
-      if (mode === "local") {
-        game = new Game(app);
+      if (mode === "local" && gameMode === "classic") {
+        game = new ClassicGame(app);
         await game.init(playerCount, playerName, (winnerName) => {
           setEndState(winnerName ? { kind: "win", name: winnerName } : { kind: "loss" });
         });
-      } else {
-        game = new OnlineGame(app, room!);
+      } else if (mode === "local" && gameMode === "goals") {
+        game = new GoalsGame(app);
+        await game.init(playerCount, playerName, (winnerName) => {
+          setEndState(winnerName ? { kind: "win", name: winnerName } : { kind: "loss" });
+        });
+      } else if (mode === "online" && gameMode === "classic") {
+        game = new ClassicOnlineGame(app, room! as any);
+        await game.init(
+          (winnerName) => setEndState({ kind: "win", name: winnerName }),
+          () => setEndState({ kind: "eliminated" }),
+        );
+      } else if (mode === "online" && gameMode === "goals") {
+        game = new GoalsOnlineGame(app, room! as any);
         await game.init(
           (winnerName) => setEndState({ kind: "win", name: winnerName }),
           () => setEndState({ kind: "eliminated" }),
@@ -83,7 +99,7 @@ export const GameScene = (props: GameSceneProps) => {
         app.destroy(true, { children: true });
       }
     };
-  }, [mode, playerCount, playerName, room]);
+  }, [mode, gameMode, playerCount, playerName, room]);
 
   const handleExit = () => {
     setEndState(null);

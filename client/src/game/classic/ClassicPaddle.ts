@@ -1,10 +1,10 @@
 import { Graphics, Container } from "pixi.js";
-import { PADDLE_WIDTH_RATIO, PLAYER_COLORS, getPaddleEndpoints } from "shared";
+import { CLASSIC_PADDLE_WIDTH_RATIO, PLAYER_COLORS, getPaddleEndpoints } from "shared";
 import type { Edge } from "shared";
 
-export class Paddle extends Container {
-  public position_t = 0.5; // 0..1 along the edge
-  public velocity_t = 0;   // change in position_t per frame
+export class ClassicPaddle extends Container {
+  public position_t = 0.5;
+  public velocity_t = 0;
   public edgeIndex: number;
   public colorIndex: number;
   public widthRatio: number;
@@ -13,7 +13,7 @@ export class Paddle extends Container {
   private edge!: Edge;
   private tangentVelocity = { x: 0, y: 0 };
 
-  constructor(edgeIndex: number, colorIndex: number, widthRatio = PADDLE_WIDTH_RATIO) {
+  constructor(edgeIndex: number, colorIndex: number, widthRatio = CLASSIC_PADDLE_WIDTH_RATIO) {
     super();
     this.edgeIndex = edgeIndex;
     this.colorIndex = colorIndex;

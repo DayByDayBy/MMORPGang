@@ -1,12 +1,12 @@
 import { Application, Container, Text, TextStyle } from "pixi.js";
-import { PLAYER_COLORS, ARENA_RADIUS, PADDLE_SPEED } from "shared";
-import type { GameState, PlayerState } from "shared";
+import { PLAYER_COLORS, CLASSIC_ARENA_RADIUS, CLASSIC_PADDLE_SPEED } from "shared";
+import type { ClassicGameState, ClassicPlayerState } from "shared";
 import type { Room } from "@colyseus/sdk";
-import { SERVER_URL } from "../network/client";
-import { Arena } from "./Arena";
-import { Paddle } from "./Paddle";
-import { Ball } from "./Ball";
-import { AudioManager } from "./AudioManager";
+import { SERVER_URL } from "../../network/client";
+import { ClassicArena } from "./ClassicArena";
+import { ClassicPaddle } from "./ClassicPaddle";
+import { Ball } from "../Ball";
+import { AudioManager } from "../AudioManager";
 
 interface RemotePlayer {
   sessionId: string;
@@ -15,13 +15,13 @@ interface RemotePlayer {
   edgeIndex: number;
   lives: number;
   eliminated: boolean;
-  paddle: Paddle;
+  paddle: ClassicPaddle;
 }
 
-export class OnlineGame {
+export class ClassicOnlineGame {
   private app: Application;
-  private room: Room<GameState>;
-  private arena!: Arena;
+  private room: Room<ClassicGameState>;
+  private arena!: ClassicArena;
   private ball!: Ball;
   private players = new Map<string, RemotePlayer>();
   private world = new Container();
@@ -36,7 +36,7 @@ export class OnlineGame {
   private playerSounds = new Map<string, AudioBuffer>();
   private lastSentPaddlePosition = -1;
 
-  constructor(app: Application, room: Room<GameState>) {
+  constructor(app: Application, room: Room<ClassicGameState>) {
     this.app = app;
     this.room = room;
   }
@@ -51,10 +51,10 @@ export class OnlineGame {
     this.world.y = this.app.screen.height / 2;
 
     const state = this.room.state;
-    const serverRadius = state.arenaRadius || ARENA_RADIUS;
+    const serverRadius = state.arenaRadius || CLASSIC_ARENA_RADIUS;
 
     const playerCount = state.players.size;
-    this.arena = new Arena(playerCount, serverRadius);
+    this.arena = new ClassicArena(playerCount, serverRadius);
 
     const maxFitRadius = Math.min(this.app.screen.width, this.app.screen.height) * 0.38;
     const scale = Math.min(1, maxFitRadius / serverRadius);
@@ -64,7 +64,7 @@ export class OnlineGame {
     this.ball = new Ball();
     this.world.addChild(this.ball);
 
-    state.players.forEach((p, sessionId) => {
+    state.players.forEach((p: ClassicPlayerState, sessionId: string) => {
       this.addPlayer(sessionId, p);
     });
 
@@ -103,13 +103,13 @@ export class OnlineGame {
     await this.audio.resume();
     this.audio.startSoundtrack();
 
-    state.players.forEach((_p, sessionId) => {
+    state.players.forEach((_p: ClassicPlayerState, sessionId: string) => {
       this.fetchPlayerAudio(sessionId);
     });
   }
 
-  private addPlayer(sessionId: string, p: PlayerState) {
-    const paddle = new Paddle(p.edgeIndex, p.colorIndex);
+  private addPlayer(sessionId: string, p: ClassicPlayerState) {
+    const paddle = new ClassicPaddle(p.edgeIndex, p.colorIndex);
     paddle.setEdge(this.arena.edges[p.edgeIndex]);
     paddle.position_t = p.paddlePosition;
     paddle.updatePosition();
@@ -131,7 +131,7 @@ export class OnlineGame {
 
     this.ball.syncState(state.ball);
 
-    state.players.forEach((p, sessionId) => {
+    state.players.forEach((p: ClassicPlayerState, sessionId: string) => {
       const rp = this.players.get(sessionId);
       if (!rp) return;
 
@@ -172,11 +172,11 @@ export class OnlineGame {
     let moved = false;
 
     if (this.keys.has("a") || this.keys.has("arrowleft")) {
-      me.paddle.move(-PADDLE_SPEED);
+      me.paddle.move(-CLASSIC_PADDLE_SPEED);
       moved = true;
     }
     if (this.keys.has("d") || this.keys.has("arrowright")) {
-      me.paddle.move(PADDLE_SPEED);
+      me.paddle.move(CLASSIC_PADDLE_SPEED);
       moved = true;
     }
 

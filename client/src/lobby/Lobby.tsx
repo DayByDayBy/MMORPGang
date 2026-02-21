@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { MIN_PLAYERS, MAX_PLAYERS, PLAYER_COLORS } from "shared";
+import type { GameMode } from "shared";
 import "./Lobby.css";
 
 interface LobbyProps {
-  onStartLocal: (name: string, playerCount: number) => void;
-  onCreateRoom: (name: string) => void;
+  onStartLocal: (name: string, playerCount: number, mode: GameMode) => void;
+  onCreateRoom: (name: string, mode: GameMode) => void;
   onJoinRoom: (name: string, roomId: string) => void;
 }
 
@@ -13,18 +14,19 @@ export const Lobby = ({ onStartLocal, onCreateRoom, onJoinRoom }: LobbyProps) =>
   const [playerCount, setPlayerCount] = useState(4);
   const [roomId, setRoomId] = useState("");
   const [error, setError] = useState("");
+  const [mode, setMode] = useState<GameMode>("classic");
 
   const valid = name.trim().length > 0;
 
   const handleLocal = (e: React.FormEvent) => {
     e.preventDefault();
-    if (valid) onStartLocal(name.trim(), playerCount);
+    if (valid) onStartLocal(name.trim(), playerCount, mode);
   };
 
   const handleCreate = () => {
     if (!valid) return;
     setError("");
-    onCreateRoom(name.trim());
+    onCreateRoom(name.trim(), mode);
   };
 
   const handleJoin = () => {
@@ -40,7 +42,7 @@ export const Lobby = ({ onStartLocal, onCreateRoom, onJoinRoom }: LobbyProps) =>
     <div className="lobby">
       <div className="lobby__card">
         <h1 className="lobby__title">PONG ARENA</h1>
-        <p className="lobby__subtitle">Multiplayer polygon pong</p>
+        <p className="lobby__subtitle">Multiplayer pong</p>
 
         <form onSubmit={handleLocal} className="lobby__form">
           <label className="lobby__label">
@@ -55,6 +57,26 @@ export const Lobby = ({ onStartLocal, onCreateRoom, onJoinRoom }: LobbyProps) =>
               autoFocus
             />
           </label>
+
+          <div className="lobby__label">
+            Game Mode
+            <div className="lobby__mode-toggle">
+              <button
+                type="button"
+                className={`lobby__mode-btn ${mode === "classic" ? "lobby__mode-btn--active" : ""}`}
+                onClick={() => setMode("classic")}
+              >
+                Classic
+              </button>
+              <button
+                type="button"
+                className={`lobby__mode-btn ${mode === "goals" ? "lobby__mode-btn--active" : ""}`}
+                onClick={() => setMode("goals")}
+              >
+                Goals
+              </button>
+            </div>
+          </div>
 
           <label className="lobby__label">
             Players (local): {playerCount}
@@ -99,7 +121,7 @@ export const Lobby = ({ onStartLocal, onCreateRoom, onJoinRoom }: LobbyProps) =>
           >
             Create Online Room
           </button>
-          <p className="lobby__online-hint">Up to {MAX_PLAYERS} players — arena adapts to whoever joins</p>
+          <p className="lobby__online-hint">Up to {MAX_PLAYERS} players</p>
 
           <div className="lobby__join-row">
             <input

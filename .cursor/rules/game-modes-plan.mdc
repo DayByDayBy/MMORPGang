@@ -1,0 +1,80 @@
+---
+description: Reference for the two game modes (Classic polygon pong + Goals circular pong)
+alwaysApply: true
+---
+
+# Game Modes Architecture
+
+This project has two game modes within one codebase. The `myrto` branch is the base — its Colyseus infrastructure, lobby, styling, and React shell are kept. The `main` branch's circular/orbital game was ported in as a second mode.
+
+## Branch Comparison
+
+### myrto (Arena Pong) — THE BASE
+- **Arena**: Polygon (n-sided based on player count)
+- **Paddles**: Linear bars sliding along polygon edges (`position_t` 0..1)
+- **Goals**: The polygon edge itself; ball passing through = lose life
+- **Physics**: Segment-based collision (`ballNearSegment`, `ballPassedEdge`, `reflectVelocity`)
+- **Ball velocity**: Per-frame (`x += vx`, no dt scaling)
+- **Networking**: Colyseus with schema-based delta patches
+- **Lobby**: Room create/join, waiting room, ready-up, audio recording
+- **Local play**: Full AI bots
+- **Audio**: Custom paddle-hit sounds, soundtrack, SFX
+- **Shared package**: Split into `types.ts`, `constants.ts`, `physics.ts`, `geometry.ts`
+
+### main (Orbital Pong) — PORT THIS IN
+- **Arena**: Circular arena (`ARENA_RADIUS`)
+- **Paddles**: Arc-shaped, orbiting around individual goal circles (`angle` in radians, `paddleArc`)
+- **Goals**: Small circles at `GOAL_RING_RADIUS` around arena center; ball entering goal circle = lose life
+- **Physics**: Circle-based collision (ball vs circular wall, ball vs arc paddle angle check, ball vs goal circle)
+- **Ball velocity**: World-units/second with dt scaling (`vx * dt`)
+- **Networking**: Socket.io (full state broadcast every tick) — **REPLACE with Colyseus**
+- **Lobby**: Basic name entry + host starts — **DISCARD, use myrto's lobby**
+- **Key constants**: `WORLD_SIZE=800`, `ARENA_RADIUS=360`, `GOAL_RING_RADIUS=259`, `GOAL_RADIUS=18`, `ORBIT_RADIUS=54`, `PADDLE_ARC=0.5rad`, `BALL_BASE_SPEED=300/sec`
+
+## Architecture Plan
+
+### 1. Game Mode Type
+Add a `GameMode` type: `"arena"` | `"orbital"`. Passed from lobby when creating a room.
+
+### 2. Lobby Changes
+- Add mode selector (toggle/dropdown) in `Lobby.tsx` before "Create Online Room" / "Start Local Game"
+- Pass `mode` to `createRoom()` and into local game
+- Keep existing styling
+
+### 3. Shared Package Updates
+- Add orbital constants to `shared/src/constants.ts` (prefixed, e.g. `ORBITAL_ARENA_RADIUS`)
+- Add orbital physics to `shared/src/orbital-physics.ts` (circular wall bounce, arc paddle collision, goal collision)
+- Add orbital types to `shared/src/types.ts` (`OrbitalPlayerState` with `angle`, `goalAngle`, `paddleArc`)
+- Keep `GameMode` type in `shared/src/types.ts`
+
+### 4. Server — Two Room Approaches
+Option A (recommended): **One `GameRoom` with mode branching**
+- `onCreate` receives `mode` option, stores in state
+- `gameLoop` calls either `arenaPhysicsStep()` or `orbitalPhysicsStep()`
+- Schema: add optional orbital fields to `PlayerSchema` (`angle`, `goalAngle`, `paddleArc`) and `GameRoomState` (`mode`, `goalRadius`, `orbitRadius`, `goalRingRadius`)
+- `paddle_input` message: arena sends `position` (number), orbital sends `left`/`right` (booleans) — differentiate by mode
+
+### 5. Client — Two Game Classes
+- `client/src/game/ArenaGame.ts` (rename from current `OnlineGame.ts` or keep as-is)
+- `client/src/game/OrbitalGame.ts` (new — port from main's rendering + sync logic)
+- `client/src/game/OrbitalArena.ts` (circular arena renderer)
+- `client/src/game/OrbitalPaddle.ts` (arc paddle renderer)
+- `client/src/game/OrbitalGoal.ts` (goal circle renderer)
+- `client/src/game/OrbitalBall.ts` (ball with trail effect)
+- Both implement a common interface so `GameScene.tsx` can mount either
+- `GameScene.tsx` checks `room.state.mode` and instantiates the right game class
+
+### 6. Local Play
+- Existing `Game.ts` = arena local mode
+- New `OrbitalLocalGame.ts` = orbital local mode with AI (port main's physics + add AI)
+- `GameScene.tsx` picks based on selected mode
+
+## Implementation Order
+1. Add `GameMode` type and mode selector in lobby
+2. Add orbital constants and physics to shared
+3. Extend schema with mode + orbital fields
+4. Port orbital server physics into `GameRoom`
+5. Build orbital client renderers (Arena, Paddle, Goal, Ball)
+6. Build `OrbitalGame` (online) wiring up Colyseus state to orbital renderers
+7. Build `OrbitalLocalGame` (local with AI)
+8. Test both modes end-to-end

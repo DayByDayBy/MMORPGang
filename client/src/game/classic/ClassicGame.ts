@@ -1,20 +1,20 @@
 import { Application, Container, Text, TextStyle, Ticker } from "pixi.js";
-import { DEFAULT_LIVES, PLAYER_COLORS, ARENA_RADIUS, PADDLE_SPEED, ballNearSegment, ballPassedEdge } from "shared";
+import { DEFAULT_LIVES, PLAYER_COLORS, CLASSIC_ARENA_RADIUS, CLASSIC_PADDLE_SPEED, ballNearSegment, ballPassedEdge } from "shared";
 import type { Edge } from "shared";
-import { Arena } from "./Arena";
-import { Paddle } from "./Paddle";
-import { Ball } from "./Ball";
-import { AudioManager } from "./AudioManager";
+import { ClassicArena } from "./ClassicArena";
+import { ClassicPaddle } from "./ClassicPaddle";
+import { Ball } from "../Ball";
+import { AudioManager } from "../AudioManager";
 
 interface AIState {
-  aggressiveness: number; // 0..1 — how much they overshoot to apply spin
-  speed: number;          // paddle move speed per frame
-  roamTarget: number;     // where to drift when ball is far away
-  roamTimer: number;      // frames until picking a new roam target
+  aggressiveness: number;
+  speed: number;
+  roamTarget: number;
+  roamTimer: number;
 }
 
 interface PlayerState {
-  paddle: Paddle;
+  paddle: ClassicPaddle;
   lives: number;
   eliminated: boolean;
   edgeIndex: number;
@@ -22,9 +22,9 @@ interface PlayerState {
   ai?: AIState;
 }
 
-export class Game {
+export class ClassicGame {
   private app: Application;
-  private arena!: Arena;
+  private arena!: ClassicArena;
   private ball!: Ball;
   private players: PlayerState[] = [];
   private playersByEdge = new Map<number, PlayerState>();
@@ -52,10 +52,10 @@ export class Game {
     this.world.y = this.app.screen.height / 2;
 
     const maxFitRadius = Math.min(this.app.screen.width, this.app.screen.height) * 0.38;
-    const scale = Math.min(1, maxFitRadius / ARENA_RADIUS);
+    const scale = Math.min(1, maxFitRadius / CLASSIC_ARENA_RADIUS);
     this.world.scale.set(scale, scale);
 
-    this.arena = new Arena(playerCount, ARENA_RADIUS);
+    this.arena = new ClassicArena(playerCount, CLASSIC_ARENA_RADIUS);
     this.world.addChild(this.arena);
 
     this.ball = new Ball();
@@ -66,7 +66,7 @@ export class Game {
 
     for (let i = 0; i < playerCount; i++) {
       const edgeIdx = edgeAssignments[i];
-      const paddle = new Paddle(i, i);
+      const paddle = new ClassicPaddle(i, i);
       paddle.setEdge(this.arena.edges[edgeIdx]);
       this.world.addChild(paddle);
 
@@ -78,7 +78,7 @@ export class Game {
         name: i === 0 ? playerName : `Bot ${i}`,
         ai: i === 0 ? undefined : {
           aggressiveness: 0.3 + Math.random() * 0.7,
-          speed: PADDLE_SPEED,
+          speed: CLASSIC_PADDLE_SPEED,
           roamTarget: 0.5,
           roamTimer: 0,
         },
@@ -129,8 +129,8 @@ export class Game {
   private handleInput() {
     const player = this.players[0];
     if (player.eliminated) return;
-    if (this.keys.has("a") || this.keys.has("arrowleft")) player.paddle.move(-PADDLE_SPEED);
-    if (this.keys.has("d") || this.keys.has("arrowright")) player.paddle.move(PADDLE_SPEED);
+    if (this.keys.has("a") || this.keys.has("arrowleft")) player.paddle.move(-CLASSIC_PADDLE_SPEED);
+    if (this.keys.has("d") || this.keys.has("arrowright")) player.paddle.move(CLASSIC_PADDLE_SPEED);
   }
 
   private updateAI() {
