@@ -3,6 +3,7 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import { TICK_RATE } from 'shared'
 import type { GameState } from 'shared'
+import { Ball } from './game/Ball'
 
 const app = express()
 const httpServer = createServer(app)
@@ -11,16 +12,19 @@ const io = new Server(httpServer, {
 })
 
 let tick = 0
+const ball = new Ball()
 
 const state: GameState = {
   players: {},
-  ball:    { x: 0, y: 0, vx: 0, vy: 0 },
+  ball:    ball.getState(),
   tick:    0,
-  phase:   'lobby',
+  phase:   'playing',
 }
 
 setInterval(() => {
   tick++
+  ball.update()
+  state.ball = ball.getState()
   state.tick = tick
   io.emit('gameState', state)
 }, 1000 / TICK_RATE)
