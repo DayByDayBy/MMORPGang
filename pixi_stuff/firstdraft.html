@@ -55,7 +55,7 @@
 const W = 1200, H = 800;
 const WALL_THICKNESS = 8;
 const BALL_RADIUS = 10;
-const PLAYER_ORBIT_RADIUS_X = 140; // horizontal radius
+const PLAYER_ORBIT_RADIUS_X = 120; // horizontal radius
 const PLAYER_ORBIT_RADIUS_Y = 60;  // vertical radius
 const PLAYER_ORBIT_SPEED = 0.05; // radians per frame at full speed
 const TRIANGLE_SIZE = 24; // half-size / scale
@@ -147,6 +147,7 @@ class Goal {
     this.radiusX = GOAL_RADIUS_X;
     this.radiusY = GOAL_RADIUS_Y;
     this.flashTimer = 0;
+    this.hitCooldown = 0;
 
     this.gfx = new PIXI.Graphics();
     this.label = new PIXI.Text(String(this.points), {
@@ -193,11 +194,15 @@ class Goal {
 
   update() {
     if (this.flashTimer > 0) this.flashTimer--;
+    if (this.hitCooldown > 0) this.hitCooldown--;
     this.draw();
   }
 
 
   checkBall(ball) {
+    // Don't check if on cooldown
+    if (this.hitCooldown > 0) return false;
+    
     // Ellipse collision detection
     const dx = ball.x - this.x;
     const dy = ball.y - this.y;
@@ -207,6 +212,7 @@ class Goal {
     
     if (dist < 1 + (ball.radius / Math.min(this.radiusX, this.radiusY))) {
       this.hit();
+      this.hitCooldown = 30; // 30 frames cooldown
       // Bounce ball away from center
       const nx = dx / Math.sqrt(dx*dx + dy*dy);
       const ny = dy / Math.sqrt(dx*dx + dy*dy);
@@ -236,7 +242,7 @@ class Player {
     this.targetSpeed = 0;
     this.size = TRIANGLE_SIZE;
 
-    // Compute world position on elliptical path
+    // compute world position on elliptical path
     this.x = cx + Math.cos(this.angle) * this.orbitRadiusX;
     this.y = cy + Math.sin(this.angle) * this.orbitRadiusY;
 
@@ -520,6 +526,7 @@ function restartGame() {
   gameOver = false;
   player.goal.points = STARTING_POINTS;
   player.goal.flashTimer = 0;
+  player.goal.hitCooldown = 0;
   player.angle = -Math.PI / 2;
   player.speed = 0;
   ball.x = W * 0.25; ball.y = H * 0.3;
