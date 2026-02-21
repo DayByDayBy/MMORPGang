@@ -31,6 +31,8 @@ export class GameRoom extends Room<GameRoomState> {
     start: { x: 0, y: 0 },
     end: { x: 0, y: 0 },
   };
+  private ballVx = 0;
+  private ballVy = 0;
 
   messages = {
     "paddle_input": (client: Client, data: { position: number }) => {
@@ -134,8 +136,8 @@ export class GameRoom extends Room<GameRoomState> {
   private gameLoop() {
     if (this.state.phase !== "playing") return;
 
-    this.state.ball.x += this.state.ball.vx;
-    this.state.ball.y += this.state.ball.vy;
+    this.state.ball.x += this.ballVx;
+    this.state.ball.y += this.ballVy;
 
     this.checkCollisions();
 
@@ -167,12 +169,12 @@ export class GameRoom extends Room<GameRoomState> {
       const mx = edge.midpoint.x;
       const my = edge.midpoint.y;
       const dist = Math.sqrt(mx * mx + my * my) || 1;
-      this.state.ball.vx = (mx / dist) * BALL_SPEED;
-      this.state.ball.vy = (my / dist) * BALL_SPEED;
+      this.ballVx = (mx / dist) * BALL_SPEED;
+      this.ballVy = (my / dist) * BALL_SPEED;
     } else {
       const angle = Math.random() * Math.PI * 2;
-      this.state.ball.vx = Math.cos(angle) * BALL_SPEED;
-      this.state.ball.vy = Math.sin(angle) * BALL_SPEED;
+      this.ballVx = Math.cos(angle) * BALL_SPEED;
+      this.ballVy = Math.sin(angle) * BALL_SPEED;
     }
   }
 
@@ -267,13 +269,13 @@ export class GameRoom extends Room<GameRoomState> {
   }
 
   private reflectBall(normal: Vector2) {
-    const dot = this.state.ball.vx * normal.x + this.state.ball.vy * normal.y;
-    this.state.ball.vx -= 2 * dot * normal.x;
-    this.state.ball.vy -= 2 * dot * normal.y;
+    const dot = this.ballVx * normal.x + this.ballVy * normal.y;
+    this.ballVx -= 2 * dot * normal.x;
+    this.ballVy -= 2 * dot * normal.y;
 
     const speedUp = 1.02;
-    this.state.ball.vx *= speedUp;
-    this.state.ball.vy *= speedUp;
+    this.ballVx *= speedUp;
+    this.ballVy *= speedUp;
     this.clampBallSpeed();
   }
 
@@ -282,17 +284,17 @@ export class GameRoom extends Room<GameRoomState> {
     const velocity_t = player.paddlePosition - prev;
     const speed = velocity_t * edge.length;
     const influence = 0.6;
-    this.state.ball.vx += Math.cos(edge.angle) * speed * influence;
-    this.state.ball.vy += Math.sin(edge.angle) * speed * influence;
+    this.ballVx += Math.cos(edge.angle) * speed * influence;
+    this.ballVy += Math.sin(edge.angle) * speed * influence;
     this.clampBallSpeed();
   }
 
   private clampBallSpeed() {
-    const speed = Math.sqrt(this.state.ball.vx ** 2 + this.state.ball.vy ** 2);
+    const speed = Math.sqrt(this.ballVx ** 2 + this.ballVy ** 2);
     if (speed > MAX_BALL_SPEED) {
       const scale = MAX_BALL_SPEED / speed;
-      this.state.ball.vx *= scale;
-      this.state.ball.vy *= scale;
+      this.ballVx *= scale;
+      this.ballVy *= scale;
     }
   }
 
