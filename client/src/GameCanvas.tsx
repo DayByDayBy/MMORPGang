@@ -1,15 +1,19 @@
 import { useEffect, useRef } from 'react'
 import { Application, Graphics } from 'pixi.js'
-import { ARENA_RADIUS, COLORS } from 'shared'
+import { COLORS } from 'shared'
 
 
 const W = window.innerWidth
 const H = window.innerHeight
 const CANVAS_SIZE_X = W
 const CANVAS_SIZE_Y = H
-const CENTER_X = W / 2
-const CENTER_Y = H / 2
 const ARENA_RADIUS = Math.min(W, H) * 0.45 
+
+// const CENTER_X = W / 2
+// const CENTER_Y = H / 2
+// const GOAL_RADIUS        = ARENA_RADIUS * 0.05
+// const ORBIT_RADIUS       = ARENA_RADIUS * 0.15
+// const GOAL_RING_RADIUS   = ARENA_RADIUS * 0.72
 
 
 

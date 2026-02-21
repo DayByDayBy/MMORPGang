@@ -7,10 +7,13 @@ export const COLORS = {
   wallGlow:    0x1a3a3a,
 }
 
+
+
 // ─── Arena ────────────────────────────────────────────────────────────────────
-export const ARENA_RADIUS   = 900
-export const ARENA_CENTER_X = 960   // assumes 1920 wide canvas
-export const ARENA_CENTER_Y = 960   // square canvas, circle fits neatly
+
+
+export const ARENA_CENTER_X = 200   
+export const ARENA_CENTER_Y = 300   // square canvas, circle fits neatly
 
 // ─── Ball ─────────────────────────────────────────────────────────────────────
 export const BALL_RADIUS     = 10
