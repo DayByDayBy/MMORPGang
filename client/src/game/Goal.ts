@@ -1,5 +1,6 @@
 import { Graphics, Container } from 'pixi.js'
-import { PlayerState, COLORS } from 'shared'
+import type { PlayerState } from 'shared'
+import { COLORS } from 'shared'
 
 export class Goal {
   private gfx: Graphics
@@ -7,6 +8,10 @@ export class Goal {
   constructor(stage: Container) {
     this.gfx = new Graphics()
     stage.addChild(this.gfx)
+  }
+
+  destroy() {
+    this.gfx.destroy()
   }
 
   render(state: PlayerState, cx: number, cy: number, radius: number) {

@@ -98,6 +98,9 @@ export default function GameCanvas() {
         // Remove disconnected players
         for (const id of playerObjs.keys()) {
           if (!state.players[id]) {
+            const objs = playerObjs.get(id)!
+            objs.goal.destroy()
+            objs.player.destroy()
             playerObjs.delete(id)
           }
         }
@@ -108,6 +111,12 @@ export default function GameCanvas() {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup',   onKeyUp)
       socket.disconnect()
+      for (const objs of playerObjs.values()) {
+        objs.goal.destroy()
+        objs.player.destroy()
+      }
+      playerObjs.clear()
+      ballObj?.destroy()
       appRef.current = null
       app.destroy(true)
     }

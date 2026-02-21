@@ -1,5 +1,6 @@
 import { Graphics, Container } from 'pixi.js'
-import { BallState, COLORS } from 'shared'
+import type { BallState } from 'shared'
+import { COLORS } from 'shared'
 
 export class Ball {
   private gfx: Graphics
@@ -10,6 +11,11 @@ export class Ball {
     this.trailGfx = new Graphics()
     this.gfx = new Graphics()
     stage.addChild(this.trailGfx, this.gfx)
+  }
+
+  destroy() {
+    this.gfx.destroy()
+    this.trailGfx.destroy()
   }
 
   render(state: BallState, radius: number) {
