@@ -30,6 +30,7 @@ export class OnlineGame {
   private destroyed = false;
   private audioCtx: AudioContext | null = null;
   private playerSounds = new Map<string, AudioBuffer>();
+  private lastSentPaddlePosition = -1;
 
   constructor(app: Application, room: Room) {
     this.app = app;
@@ -155,7 +156,8 @@ export class OnlineGame {
       moved = true;
     }
 
-    if (moved) {
+    if (moved && Math.abs(me.paddle.position_t - this.lastSentPaddlePosition) > 0.001) {
+      this.lastSentPaddlePosition = me.paddle.position_t;
       this.room.send("paddle_input", { position: me.paddle.position_t });
     }
   }
