@@ -4,7 +4,7 @@ import { Server } from 'socket.io'
 import { TICK_RATE, ARENA_RADIUS_RATIO } from 'shared'
 import { Ball } from './game/Ball'
 import { GameStateManager } from './game/GameState'
-import { checkPaddleCollision } from './game/Physics'
+import { checkPaddleCollision, checkGoalCollision } from './game/Physics'
 
 const ARENA_RADIUS     = 400 * ARENA_RADIUS_RATIO
 const GOAL_RING_RADIUS = ARENA_RADIUS * 0.72
@@ -27,7 +27,8 @@ setInterval(() => {
   for (const player of Object.values(gsm.getPlayers())) {
     const goalX = Math.cos(player.goalAngle) * GOAL_RING_RADIUS
     const goalY = Math.sin(player.goalAngle) * GOAL_RING_RADIUS
-    checkPaddleCollision(ballState, player, goalX, goalY)
+    const saved = checkPaddleCollision(ballState, player, goalX, goalY)
+    if (!saved) checkGoalCollision(ballState, player, goalX, goalY)
   }
   io.emit('gameState', gsm.getState(ballState, tick))
 }, 1000 / TICK_RATE)

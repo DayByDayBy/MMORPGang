@@ -1,5 +1,7 @@
-import { ORBIT_RADIUS, BALL_RADIUS, reflect, normalize } from 'shared'
+import { ORBIT_RADIUS, BALL_RADIUS, BALL_BASE_SPEED, reflect, normalize } from 'shared'
 import type { BallState, PlayerState } from 'shared'
+
+const GOAL_RADIUS = 400 * 0.45 * 0.05  // mirrors client: ARENA_RADIUS * 0.05
 
 function angleDiff(a: number, b: number): number {
   let d = a - b
@@ -35,6 +37,32 @@ export function checkPaddleCollision(
   const safe = ORBIT_RADIUS + BALL_RADIUS
   ball.x = goalX + normal.x * safe
   ball.y = goalY + normal.y * safe
+
+  return true
+}
+
+export function checkGoalCollision(
+  ball: BallState,
+  player: PlayerState,
+  goalX: number,
+  goalY: number,
+): boolean {
+  const dx   = ball.x - goalX
+  const dy   = ball.y - goalY
+  const dist = Math.sqrt(dx * dx + dy * dy)
+
+  if (dist >= GOAL_RADIUS + BALL_RADIUS) return false
+  if (dist >= ORBIT_RADIUS) return false  // came from outside orbit — paddle missed it
+
+  if (player.lives > 0) {
+    player.lives--
+  }
+
+  const angle = Math.random() * Math.PI * 2
+  ball.x  = 0
+  ball.y  = 0
+  ball.vx = Math.cos(angle) * BALL_BASE_SPEED
+  ball.vy = Math.sin(angle) * BALL_BASE_SPEED
 
   return true
 }
