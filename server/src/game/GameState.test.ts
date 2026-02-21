@@ -16,6 +16,7 @@ describe('GameStateManager lobby and phase behavior', () => {
     expect(lobby.players[0]).toEqual({
       id: 'socket_abcdef1234',
       name: 'socket',
+      joined: false,
     })
   })
 
@@ -39,12 +40,33 @@ describe('GameStateManager lobby and phase behavior', () => {
     expect(lobby.players[0].name).toBe('socket')
   })
 
-  it('requires two players to start', () => {
+  it('requires two named players to start (unnamed do not count)', () => {
     const gsm = new GameStateManager()
     gsm.addPlayer('p1')
-    expect(gsm.canStartGame()).toBe(false)
     gsm.addPlayer('p2')
+    // two connected but unnamed — not eligible
+    expect(gsm.canStartGame()).toBe(false)
+
+    gsm.setPlayerName('p1', 'Alice')
+    // one named — still not enough
+    expect(gsm.canStartGame()).toBe(false)
+
+    gsm.setPlayerName('p2', 'Bob')
+    // two named — eligible
     expect(gsm.canStartGame()).toBe(true)
+  })
+
+  it('lobbyState includes joined flag per player', () => {
+    const gsm = new GameStateManager()
+    gsm.addPlayer('p1')
+    gsm.addPlayer('p2')
+    gsm.setPlayerName('p1', 'Alice')
+
+    const lobby = gsm.getLobbyState()
+    const alice = lobby.players.find(p => p.id === 'p1')!
+    const unnamed = lobby.players.find(p => p.id === 'p2')!
+    expect(alice.joined).toBe(true)
+    expect(unnamed.joined).toBe(false)
   })
 
   it('reflects phase changes in emitted game state', () => {

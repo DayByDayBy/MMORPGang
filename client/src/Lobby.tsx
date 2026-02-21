@@ -1,6 +1,7 @@
 interface LobbyPlayer {
   id: string
   name: string
+  joined: boolean
 }
 
 interface LobbyProps {
@@ -39,7 +40,7 @@ export default function Lobby({
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <strong>Players ({players.length})</strong>
-          <button onClick={onStart} disabled={players.length < 2}>
+          <button onClick={onStart} disabled={players.filter(p => p.joined).length < 2}>
             Start Game
           </button>
         </div>

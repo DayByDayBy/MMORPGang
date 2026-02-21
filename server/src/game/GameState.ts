@@ -60,7 +60,8 @@ export class GameStateManager {
   }
 
   canStartGame(): boolean {
-    return Object.keys(this.players).length >= 2
+    const named = Object.values(this.players).filter(p => !!p.name?.trim())
+    return named.length >= 2
   }
 
   getLobbyState(): LobbyState {
@@ -68,6 +69,7 @@ export class GameStateManager {
       players: Object.values(this.players).map((p) => ({
         id: p.id,
         name: p.name?.trim() || p.id.slice(0, 6),
+        joined: !!p.name?.trim(),
       })),
     }
   }
