@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { io } from 'socket.io-client'
-import type { GameState, LobbyState } from 'shared'
+import { mmorpong } from 'shared'
 import GameCanvas from './GameCanvas'
 import Lobby from './Lobby'
 import type { GameSocket } from './socket'
@@ -8,16 +8,16 @@ import type { GameSocket } from './socket'
 export default function App() {
   const socket = useMemo(() => io(import.meta.env.VITE_SERVER_URL ?? 'http://localhost:3001') as GameSocket, [])
   const [name, setName] = useState('')
-  const [phase, setPhase] = useState<GameState['phase']>('lobby')
-  const [players, setPlayers] = useState<LobbyState['players']>([])
+  const [phase, setPhase] = useState<mmorpong.GameState['phase']>('lobby')
+  const [players, setPlayers] = useState<mmorpong.LobbyState['players']>([])
   const [hostId, setHostId] = useState<string | null>(null)
 
   useEffect(() => {
-    const onLobbyState = (state: LobbyState) => {
+    const onLobbyState = (state: mmorpong.LobbyState) => {
       setPlayers(state.players)
       setHostId(state.hostId)
     }
-    const onGameState = (state: GameState) => setPhase(state.phase)
+    const onGameState = (state: mmorpong.GameState) => setPhase(state.phase)
 
     socket.on('lobbyState', onLobbyState)
     socket.on('gameState', onGameState)

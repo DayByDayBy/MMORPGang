@@ -1,18 +1,11 @@
-import {
-  getSlotAngles,
-  MAX_PLAYERS,
-  STARTING_LIVES,
-  PADDLE_ARC,
-  ORBIT_SPEED,
-  ORBIT_ACCEL,
-} from 'shared'
-import type { GameState, PlayerState, BallState, PlayerInput, LobbyState } from 'shared'
+import { mmorpong, MAX_PLAYERS } from 'shared'
+
 
 export class GameStateManager {
-  private players: Record<string, PlayerState> = {}
-  private slots: number[] = getSlotAngles(MAX_PLAYERS)
-  private inputs: Map<string, PlayerInput> = new Map()
-  private phase: GameState['phase'] = 'lobby'
+  private players: Record<string, mmorpong.PlayerState> = {}
+private slots: number[] = mmorpong.getSlotAngles(MAX_PLAYERS)
+  private inputs: Map<string, mmorpong.PlayerInput> = new Map()
+  private phase: mmorpong.GameState['phase'] = 'lobby'
   private lobbyChanged = true
 
   addPlayer(socketId: string): void {
@@ -20,15 +13,15 @@ export class GameStateManager {
       Object.values(this.players).map(p => p.goalAngle)
     )
     const freeSlot = this.slots.find(a => !usedAngles.has(a))
-    if (freeSlot === undefined) return  // server full
+    if (freeSlot === undefined) return
 
     this.players[socketId] = {
       id:        socketId,
       name:      '',
       angle:     freeSlot,
       goalAngle: freeSlot,
-      paddleArc: PADDLE_ARC,
-      lives:     STARTING_LIVES,
+      paddleArc: mmorpong.PADDLE_ARC,
+      lives:     mmorpong.STARTING_LIVES,
       score:     0,
       connected: true,
     }
@@ -41,7 +34,7 @@ export class GameStateManager {
     this.lobbyChanged = true
   }
 
-  setInput(socketId: string, input: PlayerInput): void {
+  setInput(socketId: string, input: mmorpong.PlayerInput): void {
     this.inputs.set(socketId, input)
   }
 
@@ -56,11 +49,11 @@ export class GameStateManager {
     return true
   }
 
-  setPhase(phase: GameState['phase']): void {
+  setPhase(phase: mmorpong.GameState['phase']): void {
     this.phase = phase
   }
 
-  getPhase(): GameState['phase'] {
+  getPhase(): mmorpong.GameState['phase'] {
     return this.phase
   }
 
@@ -79,11 +72,11 @@ export class GameStateManager {
     return this.getHostId() === socketId
   }
 
-  getLobbyState(): LobbyState {
+  getLobbyState(): mmorpong.LobbyState {
     return {
       players: Object.values(this.players).map((p) => ({
-        id: p.id,
-        name: p.name?.trim() || p.id.slice(0, 6),
+        id:     p.id,
+        name:   p.name?.trim() || p.id.slice(0, 6),
         joined: !!p.name?.trim(),
       })),
       hostId: this.getHostId(),
@@ -95,13 +88,13 @@ export class GameStateManager {
       const input = this.inputs.get(id)
       if (!input) continue
       let target = player.angle
-      if (input.left)  target -= ORBIT_SPEED
-      if (input.right) target += ORBIT_SPEED
-      player.angle += (target - player.angle) * ORBIT_ACCEL
+      if (input.left)  target -= mmorpong.ORBIT_SPEED
+      if (input.right) target += mmorpong.ORBIT_SPEED
+      player.angle += (target - player.angle) * mmorpong.ORBIT_ACCEL
     }
   }
 
-  getState(ball: BallState, tick: number): GameState {
+  getState(ball: mmorpong.BallState, tick: number): mmorpong.GameState {
     return {
       players: { ...this.players },
       ball,
@@ -110,7 +103,7 @@ export class GameStateManager {
     }
   }
 
-  getPlayers(): Record<string, PlayerState> {
+  getPlayers(): Record<string, mmorpong.PlayerState> {
     return this.players
   }
 

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import type { mmorpong } from 'shared'
 import type { GameSocket } from '../socket'
 
 const KEYS = new Set(['ArrowLeft', 'a', 'ArrowRight', 'd'])
@@ -7,7 +8,7 @@ export function useInput(socket: GameSocket | null) {
   useEffect(() => {
     if (!socket) return
 
-    const input = { left: false, right: false }
+    const input: mmorpong.PlayerInput = { left: false, right: false }
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (!KEYS.has(e.key) || e.repeat) return

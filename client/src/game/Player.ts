@@ -1,6 +1,5 @@
 import { Graphics, Container } from 'pixi.js'
-import type { PlayerState } from 'shared'
-import { COLORS } from 'shared'
+import { mmorpong } from 'shared'
 
 export class Player {
   private gfx: Graphics
@@ -15,7 +14,7 @@ export class Player {
   }
 
   render(
-    state: PlayerState,
+    state: mmorpong.PlayerState,
     goalX: number,
     goalY: number,
     orbitRadius: number,
@@ -24,14 +23,12 @@ export class Player {
     const g = this.gfx
     g.clear()
 
-    const color = isLocal ? 0xffffff : COLORS.cyan
+    const color = isLocal ? 0xffffff : mmorpong.COLORS.cyan
     const lineWidth = isLocal ? 8 : 6
 
-    // Orbit path
     g.circle(goalX, goalY, orbitRadius)
-    g.stroke({ width: 0.5, color: COLORS.cyan, alpha: 0.08 })
+    g.stroke({ width: 0.5, color: mmorpong.COLORS.cyan, alpha: 0.08 })
 
-    // Paddle arc
     const startAngle = state.angle - state.paddleArc / 2
     const endAngle   = state.angle + state.paddleArc / 2
     g.moveTo(

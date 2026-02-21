@@ -1,17 +1,16 @@
 import express from 'express'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
-import { TICK_RATE, GOAL_RING_RADIUS } from 'shared'
-import type { ClientToServerEvents, ServerToClientEvents } from 'shared'
+import { mmorpong, MAX_PLAYERS, TICK_RATE } from 'shared'
 import { Ball } from './game/Ball'
 import { GameStateManager } from './game/GameState'
 import { checkPaddleCollision, checkGoalCollision } from './game/Physics'
 
-const DT = 1 / TICK_RATE  // seconds per tick
+const DT = 1 / TICK_RATE
 
 const app = express()
 const httpServer = createServer(app)
-const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
+const io = new Server<mmorpong.ClientToServerEvents, mmorpong.ServerToClientEvents>(httpServer, {
   cors: { origin: '*' }
 })
 
@@ -26,8 +25,8 @@ setInterval(() => {
     ball.update(DT)
     const ballState = ball.getState()
     for (const player of Object.values(gsm.getPlayers())) {
-      const goalX = Math.cos(player.goalAngle) * GOAL_RING_RADIUS
-      const goalY = Math.sin(player.goalAngle) * GOAL_RING_RADIUS
+      const goalX = Math.cos(player.goalAngle) * mmorpong.GOAL_RING_RADIUS
+      const goalY = Math.sin(player.goalAngle) * mmorpong.GOAL_RING_RADIUS
       const saved = checkPaddleCollision(ballState, player, goalX, goalY)
       if (!saved) checkGoalCollision(ballState, player, goalX, goalY)
     }
@@ -42,6 +41,7 @@ io.on('connection', (socket) => {
   console.log('client connected:', socket.id)
   gsm.addPlayer(socket.id)
   io.emit('lobbyState', gsm.getLobbyState())
+
   socket.on('playerInput', (input) => {
     if (
       typeof input !== 'object' || input === null ||
@@ -54,15 +54,18 @@ io.on('connection', (socket) => {
     }
     gsm.setInput(socket.id, { left: input.left, right: input.right })
   })
+
   socket.on('joinGame', (name) => {
     const ok = gsm.setPlayerName(socket.id, name)
     if (ok) io.emit('lobbyState', gsm.getLobbyState())
   })
+
   socket.on('startGame', () => {
     if (!gsm.isHost(socket.id)) return
     if (!gsm.canStartGame()) return
     gsm.setPhase('playing')
   })
+
   socket.on('disconnect', () => {
     console.log('client disconnected:', socket.id)
     gsm.removePlayer(socket.id)

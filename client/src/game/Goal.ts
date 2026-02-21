@@ -1,6 +1,5 @@
 import { Graphics, Container } from 'pixi.js'
-import type { PlayerState } from 'shared'
-import { COLORS } from 'shared'
+import { mmorpong } from 'shared'
 
 export class Goal {
   private gfx: Graphics
@@ -14,10 +13,10 @@ export class Goal {
     this.gfx.destroy()
   }
 
-  render(state: PlayerState, cx: number, cy: number, radius: number) {
+  render(state: mmorpong.PlayerState, cx: number, cy: number, radius: number) {
     const g = this.gfx
     g.clear()
-    const color = state.lives > 0 ? COLORS.cyan : 0xff3344
+    const color = state.lives > 0 ? mmorpong.COLORS.cyan : 0xff3344
     g.circle(cx, cy, radius)
     g.fill({ color, alpha: 0.15 })
     g.stroke({ width: 2, color, alpha: 0.8 })

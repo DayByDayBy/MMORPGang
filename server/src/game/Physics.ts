@@ -1,5 +1,4 @@
-import { ORBIT_RADIUS, BALL_RADIUS, BALL_BASE_SPEED, GOAL_RADIUS, reflect, normalize } from 'shared'
-import type { BallState, PlayerState } from 'shared'
+import { mmorpong, reflect, normalize } from 'shared'
 
 function angleDiff(a: number, b: number): number {
   let d = a - b
@@ -9,8 +8,8 @@ function angleDiff(a: number, b: number): number {
 }
 
 export function checkPaddleCollision(
-  ball: BallState,
-  player: PlayerState,
+  ball: mmorpong.BallState,
+  player: mmorpong.PlayerState,
   goalX: number,
   goalY: number,
 ): boolean {
@@ -18,7 +17,7 @@ export function checkPaddleCollision(
   const dy   = ball.y - goalY
   const dist = Math.sqrt(dx * dx + dy * dy)
 
-  if (dist < ORBIT_RADIUS - BALL_RADIUS || dist > ORBIT_RADIUS + BALL_RADIUS) {
+  if (dist < mmorpong.ORBIT_RADIUS - mmorpong.BALL_RADIUS || dist > mmorpong.ORBIT_RADIUS + mmorpong.BALL_RADIUS) {
     return false
   }
 
@@ -29,13 +28,13 @@ export function checkPaddleCollision(
 
   const normal  = normalize({ x: dx, y: dy })
   const moveDot = ball.vx * normal.x + ball.vy * normal.y
-  if (moveDot >= 0) return false  // already moving away — skip to avoid double-reflect
+  if (moveDot >= 0) return false
 
   const vel = reflect({ x: ball.vx, y: ball.vy }, normal)
   ball.vx = vel.x
   ball.vy = vel.y
 
-  const safe = ORBIT_RADIUS + BALL_RADIUS
+  const safe = mmorpong.ORBIT_RADIUS + mmorpong.BALL_RADIUS
   ball.x = goalX + normal.x * safe
   ball.y = goalY + normal.y * safe
 
@@ -43,8 +42,8 @@ export function checkPaddleCollision(
 }
 
 export function checkGoalCollision(
-  ball: BallState,
-  player: PlayerState,
+  ball: mmorpong.BallState,
+  player: mmorpong.PlayerState,
   goalX: number,
   goalY: number,
 ): boolean {
@@ -52,8 +51,8 @@ export function checkGoalCollision(
   const dy   = ball.y - goalY
   const dist = Math.sqrt(dx * dx + dy * dy)
 
-  if (dist >= GOAL_RADIUS + BALL_RADIUS) return false
-  if (dist >= ORBIT_RADIUS) return false  // came from outside orbit — paddle missed it
+  if (dist >= mmorpong.GOAL_RADIUS + mmorpong.BALL_RADIUS) return false
+  if (dist >= mmorpong.ORBIT_RADIUS) return false
 
   if (player.lives > 0) {
     player.lives--
@@ -62,8 +61,8 @@ export function checkGoalCollision(
   const angle = Math.random() * Math.PI * 2
   ball.x  = 0
   ball.y  = 0
-  ball.vx = Math.cos(angle) * BALL_BASE_SPEED
-  ball.vy = Math.sin(angle) * BALL_BASE_SPEED
+  ball.vx = Math.cos(angle) * mmorpong.BALL_BASE_SPEED
+  ball.vy = Math.sin(angle) * mmorpong.BALL_BASE_SPEED
 
   return true
 }

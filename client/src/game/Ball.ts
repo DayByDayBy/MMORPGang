@@ -1,6 +1,5 @@
 import { Graphics, Container } from 'pixi.js'
-import type { BallState } from 'shared'
-import { COLORS } from 'shared'
+import { mmorpong } from 'shared'
 
 export class Ball {
   private gfx: Graphics
@@ -18,7 +17,7 @@ export class Ball {
     this.trailGfx.destroy()
   }
 
-  render(state: BallState, radius: number) {
+  render(state: mmorpong.BallState, radius: number) {
     this.trail.push({ x: state.x, y: state.y })
     if (this.trail.length > 15) this.trail.shift()
 
@@ -28,15 +27,15 @@ export class Ball {
       const alpha = (i / this.trail.length) * 0.4
       const r = (i / this.trail.length) * radius * 0.8
       t.circle(this.trail[i].x, this.trail[i].y, r)
-      t.fill({ color: COLORS.ball, alpha })
+      t.fill({ color: mmorpong.COLORS.ball, alpha })
     }
 
     const g = this.gfx
     g.clear()
     g.circle(state.x, state.y, radius * 2.2)
-    g.fill({ color: COLORS.ball, alpha: 0.15 })
+    g.fill({ color: mmorpong.COLORS.ball, alpha: 0.15 })
     g.circle(state.x, state.y, radius)
-    g.fill({ color: COLORS.ball, alpha: 0.9 })
-    g.stroke({ width: 2, color: COLORS.ballTrail })
+    g.fill({ color: mmorpong.COLORS.ball, alpha: 0.9 })
+    g.stroke({ width: 2, color: mmorpong.COLORS.ballTrail })
   }
 }
