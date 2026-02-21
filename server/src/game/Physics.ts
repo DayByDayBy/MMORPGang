@@ -27,8 +27,11 @@ export function checkPaddleCollision(
     return false
   }
 
-  const normal = normalize({ x: dx, y: dy })
-  const vel    = reflect({ x: ball.vx, y: ball.vy }, normal)
+  const normal  = normalize({ x: dx, y: dy })
+  const moveDot = ball.vx * normal.x + ball.vy * normal.y
+  if (moveDot >= 0) return false  // already moving away — skip to avoid double-reflect
+
+  const vel = reflect({ x: ball.vx, y: ball.vy }, normal)
   ball.vx = vel.x
   ball.vy = vel.y
 

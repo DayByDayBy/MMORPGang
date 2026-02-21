@@ -35,7 +35,18 @@ setInterval(() => {
 io.on('connection', (socket) => {
   console.log('client connected:', socket.id)
   gsm.addPlayer(socket.id)
-  socket.on('playerInput', (input) => gsm.setInput(socket.id, input))
+  socket.on('playerInput', (input) => {
+    if (
+      typeof input !== 'object' || input === null ||
+      typeof input.left  !== 'boolean' ||
+      typeof input.right !== 'boolean' ||
+      Object.keys(input).length > 2
+    ) {
+      console.warn('invalid playerInput from', socket.id, input)
+      return
+    }
+    gsm.setInput(socket.id, { left: input.left, right: input.right })
+  })
   socket.on('disconnect', () => {
     console.log('client disconnected:', socket.id)
     gsm.removePlayer(socket.id)

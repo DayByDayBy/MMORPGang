@@ -19,13 +19,15 @@ collision, and goal collision. Each ticket is committed independently.
 
 - **Server**: Node + TypeScript + socket.io — `server/src/`
 - **Shared**: types & constants already defined in `shared/src/index.ts`
-  - `BALL_BASE_SPEED`, `BALL_MAX_SPEED`, `BALL_RADIUS`, `ARENA_RADIUS_RATIO`
-  - `ORBIT_RADIUS`, `ORBIT_SPEED`, `ORBIT_ACCEL`, `PADDLE_ARC`, `STARTING_LIVES`
+  - `WORLD_SIZE` (800) — canonical logical coordinate space, arena centred at `(0,0)`
+  - `ARENA_RADIUS = WORLD_SIZE * 0.45` (360), `GOAL_RING_RADIUS = ARENA_RADIUS * 0.72` (259.2), `GOAL_RADIUS = ARENA_RADIUS * 0.05` (18)
+  - `ORBIT_RADIUS = ARENA_RADIUS * 0.15` (54), `BALL_RADIUS = WORLD_SIZE * 0.0125` (10)
+  - `BALL_BASE_SPEED`, `BALL_MAX_SPEED` (world-units/sec), `ORBIT_SPEED`, `ORBIT_ACCEL`, `PADDLE_ARC`, `STARTING_LIVES`
   - `TICK_RATE` (60), `MAX_PLAYERS`, `getSlotAngles()`
   - `reflect()`, `normalize()`, `dot()` math utils
   - Types: `GameState`, `BallState`, `PlayerState`, `PlayerInput`
-- **Client**: `GameCanvas.tsx` currently uses mock state — will be wired to real socket state after S-01
-- **Arena geometry**: circular, radius = `Math.min(W,H) * ARENA_RADIUS_RATIO`; server uses a fixed logical radius (see S-01 note)
+- **Client**: `GameCanvas.tsx` maps world → screen with `SCALE = Math.min(W,H) / WORLD_SIZE`; helpers `wx(x)`, `wy(y)`, `toScreen(v)` for all render calls
+- **Arena geometry**: all physics in world space `(0,0)`-centred. No local recalculation of any geometry constant on server or client — import from shared.
 
 ---
 
@@ -84,7 +86,7 @@ collision, and goal collision. Each ticket is committed independently.
     Uses reflect() from shared.
   </description>
   <requirements>
-    - Use BALL_RADIUS and ARENA_RADIUS from shared (define a server-side logical ARENA_RADIUS)
+    - Use `BALL_RADIUS` and `ARENA_RADIUS` from shared (both exported from `shared/src/index.ts`, no local redefinition needed)
     - Normal: nx = dx/dist, ny = dy/dist (points outward from center toward ball)
     - Reflect velocity against that normal, then push ball to dist = ARENA_RADIUS - BALL_RADIUS
     - Ball must never escape the arena
@@ -158,7 +160,7 @@ collision, and goal collision. Each ticket is committed independently.
     - Angle check: use Math.atan2; handle wrap-around with angle normalisation
     - Reflect using reflect() from shared; normal = normalize({dx, dy}) away from goal center
     - Call from server tick loop for each player
-    - goalX/goalY: ARENA_CENTER + cos/sin(goalAngle) * GOAL_RING_RADIUS (define server-side)
+    - goalX/goalY: `Math.cos(goalAngle) * GOAL_RING_RADIUS`, `Math.sin(goalAngle) * GOAL_RING_RADIUS` — use `GOAL_RING_RADIUS` from shared (= `ARENA_RADIUS * 0.72` = 259.2); arena centre is `(0,0)` so no offset needed
   </requirements>
   <files>
     - server/src/game/Physics.ts (create)
@@ -178,7 +180,7 @@ collision, and goal collision. Each ticket is committed independently.
     eliminated (connected: false or add eliminated flag).
   </description>
   <requirements>
-    - GOAL_RADIUS: define server-side (proportional to ARENA_RADIUS, same ratio as client)
+    - `GOAL_RADIUS`: import from shared (`= ARENA_RADIUS * 0.05` = 18) — same value used by client, no local definition needed
     - Ball reset: position to arena center, new random direction at BALL_BASE_SPEED
     - Elimination: lives === 0 → mark player (e.g. lives stays 0, add note in state)
     - Call after paddle check in tick loop

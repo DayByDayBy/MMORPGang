@@ -54,15 +54,22 @@ export default function GameCanvas() {
     })
 
     const input = { left: false, right: false }
+    const KEYS = new Set(['ArrowLeft', 'a', 'ArrowRight', 'd'])
     const onKeyDown = (e: KeyboardEvent) => {
+      if (!KEYS.has(e.key) || e.repeat) return
+      const prev = { ...input }
       if (e.key === 'ArrowLeft'  || e.key === 'a') input.left  = true
       if (e.key === 'ArrowRight' || e.key === 'd') input.right = true
-      socket.emit('playerInput', { ...input })
+      if (input.left !== prev.left || input.right !== prev.right)
+        socket.emit('playerInput', { ...input })
     }
     const onKeyUp = (e: KeyboardEvent) => {
+      if (!KEYS.has(e.key)) return
+      const prev = { ...input }
       if (e.key === 'ArrowLeft'  || e.key === 'a') input.left  = false
       if (e.key === 'ArrowRight' || e.key === 'd') input.right = false
-      socket.emit('playerInput', { ...input })
+      if (input.left !== prev.left || input.right !== prev.right)
+        socket.emit('playerInput', { ...input })
     }
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup',   onKeyUp)
