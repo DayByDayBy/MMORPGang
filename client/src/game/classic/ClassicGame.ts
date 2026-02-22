@@ -201,7 +201,7 @@ export class ClassicGame {
         this.ball.reflect(edge.normal);
         this.ball.addSpin(player.paddle.getTangentVelocity());
         this.pushBallIn(edge);
-        this.audio.playBoop();
+        this.audio.playBoomp();
         continue;
       }
 

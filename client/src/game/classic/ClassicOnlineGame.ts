@@ -137,8 +137,7 @@ export class ClassicOnlineGame {
 
       rp.lives = p.lives;
       rp.eliminated = p.eliminated;
-      rp.paddle.position_t = p.paddlePosition;
-      rp.paddle.updatePosition();
+      rp.paddle.syncPosition(p.paddlePosition);
       rp.paddle.visible = !p.eliminated;
     });
 
@@ -162,6 +161,13 @@ export class ClassicOnlineGame {
   private renderLoop = () => {
     if (this.destroyed) return;
     this.ball.interpolate();
+    
+    for (const [sessionId, rp] of this.players) {
+      if (sessionId !== this.room.sessionId) {
+        rp.paddle.interpolate();
+      }
+    }
+    
     this.handleInput();
   };
 
@@ -251,7 +257,7 @@ export class ClassicOnlineGame {
       source.connect(ctx.destination);
       source.start();
     } else {
-      this.audio.playBoop();
+      this.audio.playBoomp();
     }
   }
 
