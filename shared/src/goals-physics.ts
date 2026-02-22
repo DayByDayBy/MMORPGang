@@ -67,7 +67,7 @@ export function checkGoalsPaddleCollision(
   const dy = ball.y - goalY;
   const dist = Math.sqrt(dx * dx + dy * dy);
 
-  const collisionThreshold = ballRadius * 3;
+  const collisionThreshold = ballRadius * 2;
   if (dist < orbitRadius - collisionThreshold || dist > orbitRadius + collisionThreshold) {
     return false;
   }
@@ -80,16 +80,15 @@ export function checkGoalsPaddleCollision(
   const normal = normalize({ x: dx, y: dy });
   const moveDot = ball.vx * normal.x + ball.vy * normal.y;
   
-  const isMovingToward = dist < orbitRadius ? moveDot < 0 : moveDot > 0;
-  if (!isMovingToward) return false;
+  if (moveDot >= 0) return false;
 
   const vel = reflect({ x: ball.vx, y: ball.vy }, normal);
   ball.vx = vel.x;
   ball.vy = vel.y;
 
-  const safe = orbitRadius + ballRadius;
-  ball.x = goalX + normal.x * safe;
-  ball.y = goalY + normal.y * safe;
+  const pushDistance = orbitRadius + ballRadius + 1;
+  ball.x = goalX + normal.x * pushDistance;
+  ball.y = goalY + normal.y * pushDistance;
 
   return true;
 }

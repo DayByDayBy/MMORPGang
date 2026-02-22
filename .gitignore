@@ -30,3 +30,11 @@ npm-debug.log*
 
 # TypeScript incremental compilation
 *.tsbuildinfo
+
+
+EXECUTION-SUMMARY.md
+TICKETS-goals-game-fixes.md
+
+verify-ticket1-fix.mjs
+verify-ticket2-fix.mjs
+verify-ticket3-resolved.mjs
