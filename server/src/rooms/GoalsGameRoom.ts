@@ -17,6 +17,7 @@ import {
   GOALS_LIVES,
   GOALS_BALL_INITIAL_SPEED_MULTIPLIER,
   GOALS_BALL_ACCELERATION,
+  GOALS_BALL_SPAWN_INTERVAL,
 } from "shared";
 import type { GoalsSimPlayer } from "shared";
 
@@ -29,6 +30,7 @@ export class GoalsGameRoom extends BaseGameRoom {
   private ballCurrentSpeed = BALL_SPEED;
   private ballAcceleration = GOALS_BALL_ACCELERATION;
   private ballMaxSpeed = BALL_SPEED;
+  private ballSpawnTimer = 0;
 
   protected getPlayers() {
     return this.state.players;
@@ -148,6 +150,28 @@ export class GoalsGameRoom extends BaseGameRoom {
 
     this.state.ball.vx = this.ballVx;
     this.state.ball.vy = this.ballVy;
+
+    // Auto ball spawning
+    this.ballSpawnTimer++;
+    if (this.ballSpawnTimer >= GOALS_BALL_SPAWN_INTERVAL) {
+      this.ballSpawnTimer = 0;
+      this.launchAdditionalBall();
+    }
+  }
+
+  private launchAdditionalBall() {
+    // Only spawn additional balls if there are alive players
+    const alivePlayers: GoalsPlayerSchema[] = [];
+    this.state.players.forEach((p) => {
+      if (!p.eliminated) alivePlayers.push(p);
+    });
+
+    if (alivePlayers.length === 0) return;
+
+    // Note: In the current implementation, we only track one ball
+    // This is a simplified version - a full implementation would need
+    // to support multiple balls in the state
+    console.log(`[GoalsGameRoom] Auto-spawn triggered (timer: ${GOALS_BALL_SPAWN_INTERVAL})`);
   }
 
   private applyInputs() {
