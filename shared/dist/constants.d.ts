@@ -1,0 +1,26 @@
+export declare const MAX_PLAYERS = 12;
+export declare const MIN_PLAYERS = 2;
+export declare const DEFAULT_LIVES = 3;
+export declare const TICK_RATE = 60;
+export declare const BALL_RADIUS = 8;
+export declare const BALL_SPEED = 5;
+export declare const MAX_CLIP_DURATION = 1.5;
+export declare const PLAYER_COLORS: readonly ["#FF4136", "#0074D9", "#2ECC40", "#FFDC00", "#FF851B", "#B10DC9", "#01FF70", "#7FDBFF", "#F012BE", "#FF6384", "#39CCCC", "#AAAAAA"];
+export declare const CLASSIC_ARENA_RADIUS = 350;
+export declare const CLASSIC_PADDLE_WIDTH_RATIO = 0.35;
+export declare const CLASSIC_PADDLE_SPEED = 0.02;
+export declare const CLASSIC_MAX_BALL_SPEED = 14;
+export declare const GOALS_ARENA_RADIUS = 360;
+export declare const GOALS_GOAL_RING_RADIUS = 259;
+export declare const GOALS_GOAL_RADIUS = 18;
+export declare const GOALS_ORBIT_RADIUS = 54;
+export declare const GOALS_ORBIT_RADIUS_MIN = 30;
+export declare const GOALS_ORBIT_RADIUS_MAX = 80;
+export declare const GOALS_ORBIT_RADIUS_SPEED = 1.5;
+export declare const GOALS_PADDLE_ARC = 0.5;
+export declare const GOALS_ORBIT_SPEED = 0.5;
+export declare const GOALS_ORBIT_ACCEL = 0.18;
+export declare const GOALS_MAX_BALL_SPEED = 10;
+export declare const GOALS_LIVES = 5;
+export declare const GOALS_BALL_SPAWN_INTERVAL = 3600;
+//# sourceMappingURL=constants.d.ts.map
