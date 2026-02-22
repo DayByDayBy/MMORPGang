@@ -1,5 +1,5 @@
 import { Graphics, Container } from "pixi.js";
-import { BALL_RADIUS, BALL_SPEED, CLASSIC_MAX_BALL_SPEED, reflectVelocity, clampSpeed } from "shared";
+import { BALL_RADIUS, BALL_SPEED, CLASSIC_MAX_BALL_SPEED, GOALS_BALL_INITIAL_SPEED_MULTIPLIER, GOALS_BALL_ACCELERATION, reflectVelocity, clampSpeed } from "shared";
 import type { Vector2 } from "shared";
 
 export class Ball extends Container {
@@ -8,6 +8,10 @@ export class Ball extends Container {
   private gfx = new Graphics();
   private serverX = 0;
   private serverY = 0;
+  private currentSpeed = BALL_SPEED;
+  private acceleration = 0;
+  private maxSpeed = BALL_SPEED;
+  private useAcceleration = false;
 
   constructor() {
     super();
@@ -24,6 +28,15 @@ export class Ball extends Container {
   }
 
   public update() {
+    if (this.useAcceleration && this.currentSpeed < this.maxSpeed) {
+      this.currentSpeed = Math.min(this.currentSpeed + this.acceleration, this.maxSpeed);
+      const speed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+      if (speed > 0) {
+        this.velocity.x = (this.velocity.x / speed) * this.currentSpeed;
+        this.velocity.y = (this.velocity.y / speed) * this.currentSpeed;
+      }
+    }
+    
     this.x += this.velocity.x;
     this.y += this.velocity.y;
   }
@@ -39,12 +52,19 @@ export class Ball extends Container {
     this.velocity = clampSpeed(this.velocity.x, this.velocity.y, maxSpeed);
   }
 
-  public launch(target: Vector2) {
+  public launch(target: Vector2, options?: { useAcceleration?: boolean; initialSpeedMultiplier?: number; acceleration?: number; maxSpeed?: number }) {
     this.x = 0;
     this.y = 0;
+    
+    this.useAcceleration = options?.useAcceleration ?? false;
+    const initialMultiplier = options?.initialSpeedMultiplier ?? 1.0;
+    this.acceleration = options?.acceleration ?? 0;
+    this.maxSpeed = options?.maxSpeed ?? BALL_SPEED;
+    this.currentSpeed = this.maxSpeed * initialMultiplier;
+    
     const dist = Math.sqrt(target.x * target.x + target.y * target.y) || 1;
-    this.velocity.x = (target.x / dist) * BALL_SPEED;
-    this.velocity.y = (target.y / dist) * BALL_SPEED;
+    this.velocity.x = (target.x / dist) * this.currentSpeed;
+    this.velocity.y = (target.y / dist) * this.currentSpeed;
   }
 
   public syncState(serverBall: { x: number; y: number }) {

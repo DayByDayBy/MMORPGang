@@ -15,6 +15,8 @@ import {
   GOALS_MAX_BALL_SPEED,
   GOALS_LIVES,
   GOALS_BALL_SPAWN_INTERVAL,
+  GOALS_BALL_INITIAL_SPEED_MULTIPLIER,
+  GOALS_BALL_ACCELERATION,
   bounceOffCircularWall,
   checkGoalsPaddleCollision,
   checkGoalsGoalCollision,
@@ -318,7 +320,12 @@ export class GoalsGame {
     const ball = new Ball();
     this.world.addChild(ball);
     this.balls.push(ball);
-    ball.launch({ x: goalX, y: goalY });
+    ball.launch({ x: goalX, y: goalY }, {
+      useAcceleration: true,
+      initialSpeedMultiplier: GOALS_BALL_INITIAL_SPEED_MULTIPLIER,
+      acceleration: GOALS_BALL_ACCELERATION,
+      maxSpeed: BALL_SPEED,
+    });
   }
 
   private checkWinCondition() {
