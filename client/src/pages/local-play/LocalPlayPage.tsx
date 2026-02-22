@@ -1,6 +1,6 @@
 import { Navigate, useNavigate } from "react-router-dom";
-import { useGame } from "../context/GameContext";
-import { GameScene } from "../game/GameScene";
+import { useGame } from "@/context/GameContext";
+import { GameScene } from "@/game/GameScene";
 
 export const LocalPlayPage = () => {
   const navigate = useNavigate();

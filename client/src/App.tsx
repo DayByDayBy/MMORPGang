@@ -1,10 +1,10 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { HomePage } from "./pages/HomePage";
-import { HostPage } from "./pages/HostPage";
-import { LocalPage } from "./pages/LocalPage";
-import { RoomPage } from "./pages/RoomPage";
-import { PlayPage } from "./pages/PlayPage";
-import { LocalPlayPage } from "./pages/LocalPlayPage";
+import { HomePage } from "./pages/home/HomePage";
+import { HostPage } from "./pages/host/HostPage";
+import { LocalPage } from "./pages/local/LocalPage";
+import { RoomPage } from "./pages/room/RoomPage";
+import { PlayPage } from "./pages/play/PlayPage";
+import { LocalPlayPage } from "./pages/local-play/LocalPlayPage";
 
 export const App = () => {
   return (

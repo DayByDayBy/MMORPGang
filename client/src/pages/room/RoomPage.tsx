@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { GameMode, BaseGameState } from "shared";
 import type { Room } from "@colyseus/sdk";
-import { useGame } from "../context/GameContext";
-import { WaitingRoom } from "../lobby/WaitingRoom";
-import { joinRoom } from "../network/client";
+import { useGame } from "@/context/GameContext";
+import { joinRoom } from "@/network/client";
+import { Button } from "@/components/Button";
+import { WaitingRoom } from "./WaitingRoom";
 
 export const RoomPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -49,12 +50,9 @@ export const RoomPage = () => {
         <div className="p-10 w-[400px] max-w-[90vw] text-center">
           <h2 className="m-0 mb-2">Can't Join Room</h2>
           <p className="text-red-500 text-sm mb-6">{error}</p>
-          <button
-            className="text-neutral-500 text-sm cursor-pointer bg-transparent border-none underline"
-            onClick={() => navigate("/")}
-          >
+          <Button variant="link" className="text-sm" onClick={() => navigate("/")}>
             Back to Home
-          </button>
+          </Button>
         </div>
       </div>
     );

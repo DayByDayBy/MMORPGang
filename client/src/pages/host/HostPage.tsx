@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { GameMode, BaseGameState } from "shared";
 import type { Room } from "@colyseus/sdk";
-import { useGame } from "../context/GameContext";
-import { createRoom } from "../network/client";
+import { useGame } from "@/context/GameContext";
+import { createRoom } from "@/network/client";
+import { Button } from "@/components/Button";
 
 export const HostPage = () => {
   const navigate = useNavigate();
@@ -60,22 +61,15 @@ export const HostPage = () => {
             </div>
           </div>
 
-          <button
-            disabled={creating}
-            className="px-6 py-3 border-none bg-green-500 text-white text-base cursor-pointer disabled:opacity-50 disabled:cursor-default"
-            onClick={handleCreate}
-          >
+          <Button variant="success" size="lg" disabled={creating} onClick={handleCreate}>
             {creating ? "Creating..." : "Create Room"}
-          </button>
+          </Button>
 
           {hostError && <p className="text-red-500 text-sm m-0">{hostError}</p>}
 
-          <button
-            className="text-neutral-500 text-sm cursor-pointer bg-transparent border-none underline"
-            onClick={() => navigate("/")}
-          >
+          <Button variant="link" className="text-sm" onClick={() => navigate("/")}>
             Back
-          </button>
+          </Button>
         </div>
       </div>
     </div>

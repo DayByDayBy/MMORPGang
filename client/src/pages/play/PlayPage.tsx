@@ -1,6 +1,6 @@
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { useGame } from "../context/GameContext";
-import { GameScene } from "../game/GameScene";
+import { useGame } from "@/context/GameContext";
+import { GameScene } from "@/game/GameScene";
 
 export const PlayPage = () => {
   const { id } = useParams<{ id: string }>();

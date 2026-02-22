@@ -4,9 +4,11 @@ import { cn } from "@/lib/utils";
 const variants = {
   default: "bg-blue-500 text-white hover:bg-blue-600",
   success: "bg-green-500 text-white hover:bg-green-600",
+  warning: "bg-orange-500 text-white hover:bg-orange-600",
   danger: "bg-red-500 text-white hover:bg-red-600",
   ghost: "bg-surface-elevated border border-border text-neutral-300 hover:bg-white/10",
   accent: "bg-sky-300/10 border border-sky-300/40 text-sky-300 hover:bg-sky-300/20",
+  link: "bg-transparent text-neutral-500 underline hover:text-neutral-300 px-0 py-0",
 } as const;
 
 const sizes = {

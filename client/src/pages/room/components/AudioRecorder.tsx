@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { MAX_CLIP_DURATION } from "shared";
+import { Button } from "@/components/Button";
 
 interface AudioRecorderProps {
   onRecorded: (dataUrl: string) => void;
@@ -94,13 +95,15 @@ export const AudioRecorder = ({ onRecorded }: AudioRecorderProps) => {
       </p>
 
       {state === "idle" && (
-        <button
+        <Button
           type="button"
-          className="px-5 py-2 border border-border bg-surface-elevated text-neutral-300 text-[13px] cursor-pointer rounded"
+          variant="ghost"
+          size="sm"
+          className="rounded text-[13px]"
           onClick={startRecording}
         >
           Record Sound
-        </button>
+        </Button>
       )}
 
       {state === "recording" && (
@@ -111,26 +114,30 @@ export const AudioRecorder = ({ onRecorded }: AudioRecorderProps) => {
               style={{ width: `${progress * 100}%` }}
             />
           </div>
-          <button
+          <Button
             type="button"
-            className="px-5 py-2 bg-red-500 border-red-500 text-white text-[13px] cursor-pointer rounded border"
+            variant="danger"
+            size="sm"
+            className="rounded text-[13px]"
             onClick={stopEarly}
           >
             Stop
-          </button>
+          </Button>
         </div>
       )}
 
       {state === "done" && audioUrl && (
         <div className="flex items-center gap-2.5">
           <audio src={audioUrl} controls className="h-8 flex-1" />
-          <button
+          <Button
             type="button"
-            className="px-3 py-1 border border-border bg-surface-elevated text-neutral-300 text-xs cursor-pointer rounded"
+            variant="ghost"
+            size="sm"
+            className="rounded text-xs"
             onClick={reRecord}
           >
             Re-record
-          </button>
+          </Button>
         </div>
       )}
 

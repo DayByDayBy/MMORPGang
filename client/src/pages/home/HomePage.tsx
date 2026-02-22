@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/Button";
 
-export const Lobby = () => {
+export const HomePage = () => {
   const navigate = useNavigate();
   const [roomId, setRoomId] = useState("");
 
@@ -12,12 +13,9 @@ export const Lobby = () => {
         <p className="text-text-muted mb-8">Multiplayer pong</p>
 
         <div className="flex flex-col gap-4">
-          <button
-            className="px-6 py-3 border-none bg-green-500 text-white text-base cursor-pointer"
-            onClick={() => navigate("/host")}
-          >
+          <Button variant="success" size="lg" onClick={() => navigate("/host")}>
             New Game
-          </button>
+          </Button>
 
           <div className="flex gap-2">
             <input
@@ -30,25 +28,23 @@ export const Lobby = () => {
                 if (e.key === "Enter" && roomId.trim()) navigate(`/${roomId.trim()}`);
               }}
             />
-            <button
+            <Button
               disabled={!roomId.trim()}
-              className="shrink-0 px-6 py-3 border-none bg-blue-500 text-white text-base cursor-pointer disabled:opacity-50 disabled:cursor-default"
+              className="shrink-0"
+              size="lg"
               onClick={() => navigate(`/${roomId.trim()}`)}
             >
               Join
-            </button>
+            </Button>
           </div>
 
           <div className="flex items-center gap-3 text-text-dim text-[13px] before:content-[''] before:flex-1 before:border-t before:border-white/10 after:content-[''] after:flex-1 after:border-t after:border-white/10">
             <span>or</span>
           </div>
 
-          <button
-            className="px-6 py-3 bg-surface-elevated border border-border text-neutral-300 text-base cursor-pointer"
-            onClick={() => navigate("/local")}
-          >
+          <Button variant="ghost" size="lg" onClick={() => navigate("/local")}>
             Play Local
-          </button>
+          </Button>
         </div>
       </div>
     </div>

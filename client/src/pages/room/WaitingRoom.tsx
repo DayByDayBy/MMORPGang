@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { PLAYER_COLORS, MAX_PLAYERS } from "shared";
 import type { BaseGameState } from "shared";
 import type { Room } from "@colyseus/sdk";
-import { AudioRecorder } from "./AudioRecorder";
-import { uploadPlayerAudio } from "../network/client";
+import { uploadPlayerAudio } from "@/network/client";
+import { Button } from "@/components/Button";
+import { AudioRecorder } from "./components/AudioRecorder";
 
 interface PlayerInfo {
   sessionId: string;
@@ -136,20 +137,12 @@ export const WaitingRoom = ({ room, onGameStart, onLeave }: WaitingRoomProps) =>
         </ul>
 
         <div className="flex gap-3 justify-center">
-          <button
-            className={`px-6 py-2.5 border-none text-[15px] cursor-pointer text-white ${
-              myReady ? "bg-orange-500" : "bg-green-500"
-            }`}
-            onClick={toggleReady}
-          >
+          <Button variant={myReady ? "warning" : "success"} onClick={toggleReady}>
             {myReady ? "Cancel Ready" : "Ready Up"}
-          </button>
-          <button
-            className="px-6 py-2.5 text-[15px] cursor-pointer bg-surface-elevated border border-border text-neutral-300"
-            onClick={handleLeave}
-          >
+          </Button>
+          <Button variant="ghost" onClick={handleLeave}>
             Leave
-          </button>
+          </Button>
         </div>
       </div>
     </div>

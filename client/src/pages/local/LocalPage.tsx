@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MIN_PLAYERS, MAX_PLAYERS, PLAYER_COLORS } from "shared";
 import type { GameMode } from "shared";
-import { useGame } from "../context/GameContext";
+import { useGame } from "@/context/GameContext";
+import { Button } from "@/components/Button";
 
 export const LocalPage = () => {
   const navigate = useNavigate();
@@ -78,20 +79,13 @@ export const LocalPage = () => {
             ))}
           </div>
 
-          <button
-            type="submit"
-            className="px-6 py-3 border-none bg-blue-500 text-white text-base cursor-pointer"
-          >
+          <Button type="submit" size="lg">
             Start Game
-          </button>
+          </Button>
 
-          <button
-            type="button"
-            className="text-neutral-500 text-sm cursor-pointer bg-transparent border-none underline"
-            onClick={() => navigate("/")}
-          >
+          <Button variant="link" className="text-sm" type="button" onClick={() => navigate("/")}>
             Back
-          </button>
+          </Button>
         </form>
       </div>
     </div>

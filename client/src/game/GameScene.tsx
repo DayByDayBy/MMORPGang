@@ -6,6 +6,7 @@ import { ClassicGame } from "./classic/ClassicGame";
 import { ClassicOnlineGame } from "./classic/ClassicOnlineGame";
 import { GoalsGame } from "./goals/GoalsGame";
 import { GoalsOnlineGame } from "./goals/GoalsOnlineGame";
+import { Button } from "@/components/Button";
 
 interface LocalGameProps {
   mode: "local";
@@ -109,12 +110,9 @@ export const GameScene = (props: GameSceneProps) => {
 
       <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-6">
         <span className="text-neutral-500">A / D or Arrow Keys to move</span>
-        <button
-          onClick={onExit}
-          className="px-5 py-2 border border-border bg-surface-elevated text-neutral-300 cursor-pointer"
-        >
+        <Button variant="ghost" size="sm" onClick={onExit}>
           Exit
-        </button>
+        </Button>
       </div>
 
       {endState?.kind === "eliminated" && (
@@ -122,18 +120,12 @@ export const GameScene = (props: GameSceneProps) => {
           <div className="p-10 text-center flex flex-col items-center gap-4">
             <h2 className="m-0 text-white">You were eliminated!</h2>
             <div className="flex gap-3 mt-2">
-              <button
-                onClick={() => setEndState(null)}
-                className="px-5 py-2 border border-sky-300/40 bg-sky-300/10 text-sky-300 cursor-pointer hover:bg-sky-300/20"
-              >
+              <Button variant="accent" size="sm" onClick={() => setEndState(null)}>
                 Spectate
-              </button>
-              <button
-                onClick={handleExit}
-                className="px-5 py-2 border border-border bg-surface-elevated text-neutral-300 cursor-pointer"
-              >
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleExit}>
                 Exit Game
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -144,12 +136,9 @@ export const GameScene = (props: GameSceneProps) => {
           <div className="p-10 text-center flex flex-col items-center gap-4">
             <h2 className="m-0 text-white">Game Over!</h2>
             <p className="m-0 text-sky-300">You lost!</p>
-            <button
-              onClick={handleExit}
-              className="px-5 py-2 border border-border bg-surface-elevated text-neutral-300 cursor-pointer"
-            >
+            <Button variant="ghost" size="sm" onClick={handleExit}>
               Back to Lobby
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -159,12 +148,9 @@ export const GameScene = (props: GameSceneProps) => {
           <div className="p-10 text-center flex flex-col items-center gap-4">
             <h2 className="m-0 text-white">Game Over!</h2>
             <p className="m-0 text-sky-300">{endState.name} wins!</p>
-            <button
-              onClick={handleExit}
-              className="px-5 py-2 border border-border bg-surface-elevated text-neutral-300 cursor-pointer"
-            >
+            <Button variant="ghost" size="sm" onClick={handleExit}>
               Back to Lobby
-            </button>
+            </Button>
           </div>
         </div>
       )}
