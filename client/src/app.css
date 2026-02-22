@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 @theme {
+  --font-body: "Geist Mono", ui-monospace, monospace;
+  --font-heading: "Instrument Sans", system-ui, sans-serif;
+
   --color-surface: #0a0a1a;
   --color-surface-elevated: rgba(255, 255, 255, 0.05);
   --color-border: rgba(255, 255, 255, 0.15);
@@ -19,8 +22,12 @@ body,
 }
 
 body {
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
   background: var(--color-surface);
   color: var(--color-text);
   overflow: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
 }
