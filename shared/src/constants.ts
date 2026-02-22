@@ -9,18 +9,18 @@ export const BALL_SPEED = 5;
 export const MAX_CLIP_DURATION = 1.5;
 
 export const PLAYER_COLORS = [
-  "#FF4136", // red
-  "#0074D9", // blue
-  "#2ECC40", // green
-  "#FFDC00", // yellow
-  "#FF851B", // orange
-  "#B10DC9", // purple
-  "#01FF70", // lime
-  "#7FDBFF", // aqua
-  "#F012BE", // fuchsia
-  "#FF6384", // pink
-  "#39CCCC", // teal
-  "#AAAAAA", // silver
+  "#ef4444", // red-500
+  "#3b82f6", // blue-500
+  "#22c55e", // green-500
+  "#facc15", // yellow-400
+  "#f97316", // orange-500
+  "#a855f7", // purple-500
+  "#4ade80", // green-400
+  "#7dd3fc", // sky-300
+  "#d946ef", // fuchsia-500
+  "#fb7185", // rose-400
+  "#2dd4bf", // teal-400
+  "#a3a3a3", // neutral-400
 ] as const;
 
 // --- Classic mode constants ---

@@ -6,7 +6,6 @@ import { ClassicGame } from "./classic/ClassicGame";
 import { ClassicOnlineGame } from "./classic/ClassicOnlineGame";
 import { GoalsGame } from "./goals/GoalsGame";
 import { GoalsOnlineGame } from "./goals/GoalsOnlineGame";
-import "./GameScene.css";
 
 interface LocalGameProps {
   mode: "local";
@@ -35,9 +34,7 @@ export const GameScene = (props: GameSceneProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [endState, setEndState] = useState<EndState>(null);
 
-  const onExit = props.onExit;
-  const mode = props.mode;
-  const gameMode = props.gameMode;
+  const { mode, gameMode, onExit } = props;
   const playerCount = mode === "local" ? props.playerCount : 0;
   const playerName = mode === "local" ? props.playerName : "";
   const room = mode === "online" ? props.room : null;
@@ -107,28 +104,34 @@ export const GameScene = (props: GameSceneProps) => {
   };
 
   return (
-    <div className="game">
-      <div ref={containerRef} className="game__canvas" />
+    <div className="relative w-full h-full">
+      <div ref={containerRef} className="w-full h-full" />
 
-      <div className="game__controls">
-        <span className="game__hint">A / D or Arrow Keys to move</span>
-        <button onClick={onExit} className="game__exit-btn">
+      <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-6">
+        <span className="text-neutral-500">A / D or Arrow Keys to move</span>
+        <button
+          onClick={onExit}
+          className="px-5 py-2 border border-border bg-surface-elevated text-neutral-300 cursor-pointer"
+        >
           Exit
         </button>
       </div>
 
       {endState?.kind === "eliminated" && (
-        <div className="game__overlay">
-          <div className="game__win-card">
-            <h2 className="game__win-title">You were eliminated!</h2>
-            <div className="game__eliminated-actions">
+        <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-[100]">
+          <div className="p-10 text-center flex flex-col items-center gap-4">
+            <h2 className="m-0 text-white">You were eliminated!</h2>
+            <div className="flex gap-3 mt-2">
               <button
                 onClick={() => setEndState(null)}
-                className="game__spectate-btn"
+                className="px-5 py-2 border border-sky-300/40 bg-sky-300/10 text-sky-300 cursor-pointer hover:bg-sky-300/20"
               >
                 Spectate
               </button>
-              <button onClick={handleExit} className="game__exit-btn">
+              <button
+                onClick={handleExit}
+                className="px-5 py-2 border border-border bg-surface-elevated text-neutral-300 cursor-pointer"
+              >
                 Exit Game
               </button>
             </div>
@@ -137,11 +140,14 @@ export const GameScene = (props: GameSceneProps) => {
       )}
 
       {endState?.kind === "loss" && (
-        <div className="game__overlay">
-          <div className="game__win-card">
-            <h2 className="game__win-title">Game Over!</h2>
-            <p className="game__win-text">You lost!</p>
-            <button onClick={handleExit} className="game__exit-btn">
+        <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-[100]">
+          <div className="p-10 text-center flex flex-col items-center gap-4">
+            <h2 className="m-0 text-white">Game Over!</h2>
+            <p className="m-0 text-sky-300">You lost!</p>
+            <button
+              onClick={handleExit}
+              className="px-5 py-2 border border-border bg-surface-elevated text-neutral-300 cursor-pointer"
+            >
               Back to Lobby
             </button>
           </div>
@@ -149,11 +155,14 @@ export const GameScene = (props: GameSceneProps) => {
       )}
 
       {endState?.kind === "win" && (
-        <div className="game__overlay">
-          <div className="game__win-card">
-            <h2 className="game__win-title">Game Over!</h2>
-            <p className="game__win-text">{endState.name} wins!</p>
-            <button onClick={handleExit} className="game__exit-btn">
+        <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-[100]">
+          <div className="p-10 text-center flex flex-col items-center gap-4">
+            <h2 className="m-0 text-white">Game Over!</h2>
+            <p className="m-0 text-sky-300">{endState.name} wins!</p>
+            <button
+              onClick={handleExit}
+              className="px-5 py-2 border border-border bg-surface-elevated text-neutral-300 cursor-pointer"
+            >
               Back to Lobby
             </button>
           </div>

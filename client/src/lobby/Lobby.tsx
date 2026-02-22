@@ -1,148 +1,55 @@
 import { useState } from "react";
-import { MIN_PLAYERS, MAX_PLAYERS, PLAYER_COLORS } from "shared";
-import type { GameMode } from "shared";
-import "./Lobby.css";
+import { useNavigate } from "react-router-dom";
 
-interface LobbyProps {
-  onStartLocal: (name: string, playerCount: number, mode: GameMode) => void;
-  onCreateRoom: (name: string, mode: GameMode) => void;
-  onJoinRoom: (name: string, roomId: string) => void;
-}
-
-export const Lobby = ({ onStartLocal, onCreateRoom, onJoinRoom }: LobbyProps) => {
-  const [name, setName] = useState("");
-  const [playerCount, setPlayerCount] = useState(4);
+export const Lobby = () => {
+  const navigate = useNavigate();
   const [roomId, setRoomId] = useState("");
-  const [error, setError] = useState("");
-  const [mode, setMode] = useState<GameMode>("classic");
-
-  const valid = name.trim().length > 0;
-
-  const handleLocal = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (valid) onStartLocal(name.trim(), playerCount, mode);
-  };
-
-  const handleCreate = () => {
-    if (!valid) return;
-    setError("");
-    onCreateRoom(name.trim(), mode);
-  };
-
-  const handleJoin = () => {
-    if (!valid || !roomId.trim()) {
-      setError("Enter your name and a room ID");
-      return;
-    }
-    setError("");
-    onJoinRoom(name.trim(), roomId.trim());
-  };
 
   return (
-    <div className="lobby">
-      <div className="lobby__card">
-        <h1 className="lobby__title">PONG ARENA</h1>
-        <p className="lobby__subtitle">Multiplayer pong</p>
+    <div className="flex items-center justify-center w-full h-full">
+      <div className="p-10 w-[400px] max-w-[90vw] text-center">
+        <h1 className="m-0">PONG ARENA</h1>
+        <p className="text-text-muted mb-8">Multiplayer pong</p>
 
-        <form onSubmit={handleLocal} className="lobby__form">
-          <label className="lobby__label">
-            Your Name
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name..."
-              maxLength={16}
-              className="lobby__input"
-              autoFocus
-            />
-          </label>
-
-          <div className="lobby__label">
-            Game Mode
-            <div className="lobby__mode-toggle">
-              <button
-                type="button"
-                className={`lobby__mode-btn ${mode === "classic" ? "lobby__mode-btn--active" : ""}`}
-                onClick={() => setMode("classic")}
-              >
-                Classic
-              </button>
-              <button
-                type="button"
-                className={`lobby__mode-btn ${mode === "goals" ? "lobby__mode-btn--active" : ""}`}
-                onClick={() => setMode("goals")}
-              >
-                Goals
-              </button>
-            </div>
-          </div>
-
-          <label className="lobby__label">
-            Players (local): {playerCount}
-            <input
-              type="range"
-              min={MIN_PLAYERS}
-              max={MAX_PLAYERS}
-              value={playerCount}
-              onChange={(e) => setPlayerCount(Number(e.target.value))}
-              className="lobby__slider"
-            />
-            <div className="lobby__slider-labels">
-              <span>{MIN_PLAYERS}</span>
-              <span>{MAX_PLAYERS}</span>
-            </div>
-          </label>
-
-          <div className="lobby__preview">
-            {Array.from({ length: playerCount }, (_, i) => (
-              <div
-                key={i}
-                className="lobby__dot"
-                style={{ backgroundColor: PLAYER_COLORS[i] }}
-                title={`Player ${i + 1}`}
-              />
-            ))}
-          </div>
-
-          <button type="submit" disabled={!valid} className="lobby__button">
-            Start Local Game
-          </button>
-
-          <div className="lobby__divider">
-            <span>or play online</span>
-          </div>
-
+        <div className="flex flex-col gap-4">
           <button
-            type="button"
-            disabled={!valid}
-            className="lobby__button lobby__button--online"
-            onClick={handleCreate}
+            className="px-6 py-3 border-none bg-green-500 text-white text-base cursor-pointer"
+            onClick={() => navigate("/host")}
           >
-            Create Online Room
+            New Game
           </button>
-          <p className="lobby__online-hint">Up to {MAX_PLAYERS} players</p>
 
-          <div className="lobby__join-row">
+          <div className="flex gap-2">
             <input
               type="text"
               value={roomId}
               onChange={(e) => setRoomId(e.target.value)}
               placeholder="Room ID..."
-              className="lobby__input lobby__input--room"
+              className="flex-1 min-w-0 px-3 py-2 border border-border bg-surface-elevated text-white text-base outline-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && roomId.trim()) navigate(`/${roomId.trim()}`);
+              }}
             />
             <button
-              type="button"
-              disabled={!valid || !roomId.trim()}
-              className="lobby__button lobby__button--join"
-              onClick={handleJoin}
+              disabled={!roomId.trim()}
+              className="shrink-0 px-6 py-3 border-none bg-blue-500 text-white text-base cursor-pointer disabled:opacity-50 disabled:cursor-default"
+              onClick={() => navigate(`/${roomId.trim()}`)}
             >
               Join
             </button>
           </div>
 
-          {error && <p className="lobby__error">{error}</p>}
-        </form>
+          <div className="flex items-center gap-3 text-text-dim text-[13px] before:content-[''] before:flex-1 before:border-t before:border-white/10 after:content-[''] after:flex-1 after:border-t after:border-white/10">
+            <span>or</span>
+          </div>
+
+          <button
+            className="px-6 py-3 bg-surface-elevated border border-border text-neutral-300 text-base cursor-pointer"
+            onClick={() => navigate("/local")}
+          >
+            Play Local
+          </button>
+        </div>
       </div>
     </div>
   );

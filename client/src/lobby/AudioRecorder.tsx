@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import { MAX_CLIP_DURATION } from "shared";
 
 interface AudioRecorderProps {
@@ -16,12 +16,12 @@ export const AudioRecorder = ({ onRecorded }: AudioRecorderProps) => {
   const timerRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
 
-  const cleanup = useCallback(() => {
+  const cleanup = () => {
     if (timerRef.current) cancelAnimationFrame(timerRef.current);
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     recorderRef.current = null;
-  }, []);
+  };
 
   const startRecording = async () => {
     try {
@@ -88,36 +88,53 @@ export const AudioRecorder = ({ onRecorded }: AudioRecorderProps) => {
   };
 
   return (
-    <div className="recorder">
-      <p className="recorder__label">Paddle Sound</p>
+    <div className="my-4 p-4 bg-white/3 border border-border-subtle rounded-lg">
+      <p className="m-0 mb-2.5 text-[13px] font-semibold tracking-wider uppercase text-neutral-400">
+        Paddle Sound
+      </p>
 
       {state === "idle" && (
-        <button className="recorder__btn" onClick={startRecording}>
+        <button
+          type="button"
+          className="px-5 py-2 border border-border bg-surface-elevated text-neutral-300 text-[13px] cursor-pointer rounded"
+          onClick={startRecording}
+        >
           Record Sound
         </button>
       )}
 
       {state === "recording" && (
-        <div className="recorder__active">
-          <div className="recorder__bar">
-            <div className="recorder__fill" style={{ width: `${progress * 100}%` }} />
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-1.5 bg-white/10 rounded-sm overflow-hidden">
+            <div
+              className="h-full bg-red-500 rounded-sm transition-[width] duration-50 ease-linear"
+              style={{ width: `${progress * 100}%` }}
+            />
           </div>
-          <button className="recorder__btn recorder__btn--stop" onClick={stopEarly}>
+          <button
+            type="button"
+            className="px-5 py-2 bg-red-500 border-red-500 text-white text-[13px] cursor-pointer rounded border"
+            onClick={stopEarly}
+          >
             Stop
           </button>
         </div>
       )}
 
       {state === "done" && audioUrl && (
-        <div className="recorder__preview">
-          <audio src={audioUrl} controls className="recorder__audio" />
-          <button className="recorder__btn recorder__btn--redo" onClick={reRecord}>
+        <div className="flex items-center gap-2.5">
+          <audio src={audioUrl} controls className="h-8 flex-1" />
+          <button
+            type="button"
+            className="px-3 py-1 border border-border bg-surface-elevated text-neutral-300 text-xs cursor-pointer rounded"
+            onClick={reRecord}
+          >
             Re-record
           </button>
         </div>
       )}
 
-      <p className="recorder__hint">
+      <p className="mt-2 mb-0 text-[11px] text-text-dim">
         {state === "idle" && "Record a short sound effect for your paddle"}
         {state === "recording" && "Recording... speak or make a noise!"}
         {state === "done" && "This plays when the ball hits your paddle"}

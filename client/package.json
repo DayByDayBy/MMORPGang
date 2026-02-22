@@ -10,9 +10,15 @@
   },
   "dependencies": {
     "@colyseus/sdk": "^0.17.33",
+    "@tailwindcss/vite": "^4.2.0",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "clsx": "^2.1.1",
     "pixi.js": "^8.6.6",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.13.0",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.9",

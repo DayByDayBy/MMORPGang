@@ -33,6 +33,13 @@ export abstract class BaseGameRoom extends Room {
       }
     },
 
+    "set_name": (client: Client, data: { name?: string }) => {
+      const player = this.getPlayers().get(client.sessionId);
+      if (!player || this.typedState.phase !== "waiting") return;
+      const name = typeof data?.name === "string" ? data.name.trim().slice(0, 16) : "";
+      if (name) player.name = name;
+    },
+
     "audio_uploaded": (client: Client) => {
       this.audioSessionIds.add(client.sessionId);
       this.broadcast("audio_ready", { sessionId: client.sessionId }, { except: client });

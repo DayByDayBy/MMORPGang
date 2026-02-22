@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface: #0a0a1a;
+  --color-surface-elevated: rgba(255, 255, 255, 0.05);
+  --color-border: rgba(255, 255, 255, 0.15);
+  --color-border-subtle: rgba(255, 255, 255, 0.08);
+  --color-text: #e0e0e0;
+  --color-text-muted: #888;
+  --color-text-dim: #555;
+  --color-accent: #7dd3fc;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--color-surface);
+  color: var(--color-text);
+  overflow: hidden;
+}
