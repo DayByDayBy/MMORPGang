@@ -4,11 +4,11 @@ import {
   GOALS_GOAL_RING_RADIUS,
   GOALS_GOAL_RADIUS,
   GOALS_ORBIT_RADIUS,
-  GOALS_ORBIT_SPEED,
   GOALS_PADDLE_ARC,
-  goalsPhysicsStep,
+  BALL_RADIUS,
+  angleDiff,
 } from "shared";
-import type { GoalsGameState, GoalsPlayerState, BallState, GoalsSimPlayer } from "shared";
+import type { GoalsGameState, GoalsPlayerState, BallState } from "shared";
 import type { Room } from "@colyseus/sdk";
 import type { HudPlayer } from "../GameHud";
 import { SERVER_URL } from "../../network/client";
@@ -54,6 +54,7 @@ export class GoalsOnlineGame {
   private predictedBall: BallState = { x: 0, y: 0, vx: 0, vy: 0 };
   private correctionX = 0;
   private correctionY = 0;
+  private tickAccumulator = 0;
 
   constructor(app: Application, room: Room<GoalsGameState>, onHudUpdate: (players: HudPlayer[]) => void) {
     this.app = app;
@@ -166,10 +167,13 @@ export class GoalsOnlineGame {
     const errY = state.ball.y - this.predictedBall.y;
     const distSq = errX * errX + errY * errY;
 
+    const dot = this.predictedBall.vx * state.ball.vx + this.predictedBall.vy * state.ball.vy;
+    const bounced = dot < 0;
+
     this.predictedBall.vx = state.ball.vx;
     this.predictedBall.vy = state.ball.vy;
 
-    if (distSq > SNAP_DIST_SQ) {
+    if (distSq > SNAP_DIST_SQ || bounced) {
       this.predictedBall.x = state.ball.x;
       this.predictedBall.y = state.ball.y;
       this.correctionX = 0;
@@ -238,41 +242,64 @@ export class GoalsOnlineGame {
   private renderLoop = (ticker: Ticker) => {
     if (this.destroyed) return;
     const dt = ticker.deltaMS / 1000;
+    const arenaRadius = (this.room.state as any).arenaRadius || GOALS_ARENA_RADIUS;
+    const goalRingRadius = (this.room.state as any).goalRingRadius || GOALS_GOAL_RING_RADIUS;
+    const orbitRadius = (this.room.state as any).orbitRadius || GOALS_ORBIT_RADIUS;
 
-    const simPlayers = this.buildSimPlayers();
-    const result = goalsPhysicsStep({
-      ball: this.predictedBall,
-      players: simPlayers,
-      arenaRadius: (this.room.state as any).arenaRadius || GOALS_ARENA_RADIUS,
-      goalRingRadius: (this.room.state as any).goalRingRadius || GOALS_GOAL_RING_RADIUS,
-      goalRadius: (this.room.state as any).goalRadius || GOALS_GOAL_RADIUS,
-      orbitRadius: (this.room.state as any).orbitRadius || GOALS_ORBIT_RADIUS,
-      paddleArc: GOALS_PADDLE_ARC,
-    });
+    this.tickAccumulator += ticker.deltaTime;
+    while (this.tickAccumulator >= 1) {
+      this.tickAccumulator -= 1;
+      const b = this.predictedBall;
+      b.x += b.vx;
+      b.y += b.vy;
 
-    if (!result.ballReset) {
-      this.predictedBall = result.ball;
+      // Circular wall bounce (inline, zero alloc)
+      const dist = Math.sqrt(b.x * b.x + b.y * b.y);
+      if (dist + BALL_RADIUS >= arenaRadius) {
+        const nx = b.x / dist;
+        const ny = b.y / dist;
+        const dot = b.vx * nx + b.vy * ny;
+        b.vx -= 2 * dot * nx;
+        b.vy -= 2 * dot * ny;
+        const safe = arenaRadius - BALL_RADIUS;
+        b.x = nx * safe;
+        b.y = ny * safe;
+      }
+
+      // Paddle bounce (inline, zero alloc)
+      for (const [, rp] of this.players) {
+        if (rp.eliminated) continue;
+        const gx = Math.cos(rp.goalAngle) * goalRingRadius;
+        const gy = Math.sin(rp.goalAngle) * goalRingRadius;
+        const dx = b.x - gx;
+        const dy = b.y - gy;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        const threshold = BALL_RADIUS * 2;
+        if (d < orbitRadius - threshold || d > orbitRadius + threshold) continue;
+        const bAngle = Math.atan2(dy, dx);
+        if (Math.abs(angleDiff(bAngle, rp.paddleAngle)) > GOALS_PADDLE_ARC / 2) continue;
+        const len = d || 1;
+        const pnx = dx / len;
+        const pny = dy / len;
+        if (b.vx * pnx + b.vy * pny >= 0) continue;
+        const dot = b.vx * pnx + b.vy * pny;
+        b.vx -= 2 * dot * pnx;
+        b.vy -= 2 * dot * pny;
+        const push = orbitRadius + BALL_RADIUS + 1;
+        b.x = gx + pnx * push;
+        b.y = gy + pny * push;
+        break;
+      }
     }
 
     const decay = Math.exp(-CORRECTION_DECAY * dt);
     this.correctionX *= decay;
     this.correctionY *= decay;
 
-    this.ball.x = this.predictedBall.x + this.correctionX;
-    this.ball.y = this.predictedBall.y + this.correctionY;
+    const t = this.tickAccumulator;
+    this.ball.x = this.predictedBall.x + this.predictedBall.vx * t + this.correctionX;
+    this.ball.y = this.predictedBall.y + this.predictedBall.vy * t + this.correctionY;
   };
-
-  private buildSimPlayers(): GoalsSimPlayer[] {
-    const simPlayers: GoalsSimPlayer[] = [];
-    for (const [, rp] of this.players) {
-      simPlayers.push({
-        goalAngle: rp.goalAngle,
-        paddleAngle: rp.paddleAngle,
-        eliminated: rp.eliminated,
-      });
-    }
-    return simPlayers;
-  }
 
   private emitHud() {
     const players: HudPlayer[] = [];

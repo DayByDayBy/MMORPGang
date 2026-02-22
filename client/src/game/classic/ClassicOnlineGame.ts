@@ -2,11 +2,12 @@ import { Application, Container, Ticker } from "pixi.js";
 import {
   CLASSIC_ARENA_RADIUS,
   CLASSIC_PADDLE_SPEED,
+  BALL_RADIUS,
   computeEdges,
   getArenaConfig,
-  classicPhysicsStep,
+  ballNearSegment,
 } from "shared";
-import type { ClassicGameState, ClassicPlayerState, Edge, BallState, ClassicSimPlayer } from "shared";
+import type { ClassicGameState, ClassicPlayerState, BallState, Edge } from "shared";
 import type { Room } from "@colyseus/sdk";
 import type { HudPlayer } from "../GameHud";
 import { SERVER_URL } from "../../network/client";
@@ -50,6 +51,8 @@ export class ClassicOnlineGame {
   private predictedBall: BallState = { x: 0, y: 0, vx: 0, vy: 0 };
   private correctionX = 0;
   private correctionY = 0;
+  private tickAccumulator = 0;
+  private hitDistSq = (BALL_RADIUS + 4) ** 2;
 
   constructor(app: Application, room: Room<ClassicGameState>, onHudUpdate: (players: HudPlayer[]) => void) {
     this.app = app;
@@ -70,7 +73,6 @@ export class ClassicOnlineGame {
 
     const playerCount = state.players.size;
     this.arena = new ClassicArena(playerCount, serverRadius);
-
     const arenaConfig = getArenaConfig(playerCount);
     this.edges = computeEdges(arenaConfig.numSides, serverRadius);
 
@@ -152,10 +154,13 @@ export class ClassicOnlineGame {
     const errY = state.ball.y - this.predictedBall.y;
     const distSq = errX * errX + errY * errY;
 
+    const dot = this.predictedBall.vx * state.ball.vx + this.predictedBall.vy * state.ball.vy;
+    const bounced = dot < 0;
+
     this.predictedBall.vx = state.ball.vx;
     this.predictedBall.vy = state.ball.vy;
 
-    if (distSq > SNAP_DIST_SQ) {
+    if (distSq > SNAP_DIST_SQ || bounced) {
       this.predictedBall.x = state.ball.x;
       this.predictedBall.y = state.ball.y;
       this.correctionX = 0;
@@ -198,24 +203,33 @@ export class ClassicOnlineGame {
 
     this.handleInput();
 
-    const simPlayers = this.buildSimPlayers();
-    const result = classicPhysicsStep({
-      ball: this.predictedBall,
-      edges: this.edges,
-      players: simPlayers,
-      arenaRadius: this.room.state.arenaRadius || CLASSIC_ARENA_RADIUS,
-    });
+    this.tickAccumulator += ticker.deltaTime;
+    while (this.tickAccumulator >= 1) {
+      this.tickAccumulator -= 1;
+      const b = this.predictedBall;
+      b.x += b.vx;
+      b.y += b.vy;
 
-    if (!result.ballReset) {
-      this.predictedBall = result.ball;
+      for (let i = 0; i < this.edges.length; i++) {
+        const e = this.edges[i];
+        if (ballNearSegment(b.x, b.y, e.start, e.end, this.hitDistSq)) {
+          const dot = b.vx * e.normal.x + b.vy * e.normal.y;
+          b.vx -= 2 * dot * e.normal.x;
+          b.vy -= 2 * dot * e.normal.y;
+          b.x -= e.normal.x * 2;
+          b.y -= e.normal.y * 2;
+          break;
+        }
+      }
     }
 
     const decay = Math.exp(-CORRECTION_DECAY * dt);
     this.correctionX *= decay;
     this.correctionY *= decay;
 
-    this.ball.x = this.predictedBall.x + this.correctionX;
-    this.ball.y = this.predictedBall.y + this.correctionY;
+    const t = this.tickAccumulator;
+    this.ball.x = this.predictedBall.x + this.predictedBall.vx * t + this.correctionX;
+    this.ball.y = this.predictedBall.y + this.predictedBall.vy * t + this.correctionY;
 
     for (const [sessionId, rp] of this.players) {
       if (sessionId !== this.room.sessionId) {
@@ -223,19 +237,6 @@ export class ClassicOnlineGame {
       }
     }
   };
-
-  private buildSimPlayers(): ClassicSimPlayer[] {
-    const simPlayers: ClassicSimPlayer[] = [];
-    for (const [, rp] of this.players) {
-      simPlayers.push({
-        edgeIndex: rp.edgeIndex,
-        paddlePosition: rp.paddle.position_t,
-        prevPaddlePosition: rp.paddle.position_t,
-        eliminated: rp.eliminated,
-      });
-    }
-    return simPlayers;
-  }
 
   private handleInput() {
     const me = this.players.get(this.room.sessionId);
