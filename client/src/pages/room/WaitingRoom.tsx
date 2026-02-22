@@ -102,7 +102,7 @@ export const WaitingRoom = ({ room, onGameStart, onLeave }: WaitingRoomProps) =>
           {players.length} / {MAX_PLAYERS} players
         </p>
 
-        <div className="my-5 p-4 bg-white/3 border border-border-subtle rounded-lg text-left">
+        <div className="my-5 p-4 bg-white/3 border border-border-subtle rounded-lg text-left flex flex-col gap-3">
           <label className="flex flex-col gap-2 text-neutral-400 text-sm">
             Your Name
             <input
@@ -122,7 +122,7 @@ export const WaitingRoom = ({ room, onGameStart, onLeave }: WaitingRoomProps) =>
 
           
 
-          <div className="mt-3">
+          <div>
             <span className="text-neutral-400 text-sm">Lives Emoji</span>
             <div className="flex items-center gap-2 mt-1.5">
               <input

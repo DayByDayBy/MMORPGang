@@ -89,10 +89,10 @@ export const AudioRecorder = ({ onRecorded }: AudioRecorderProps) => {
   };
 
   return (
-    <div className="my-4 p-4 bg-white/3 border border-border-subtle rounded-lg">
-      <p className="m-0 mb-2.5 text-[13px] font-semibold tracking-wider uppercase text-neutral-400">
-        Paddle Sound
-      </p>
+    <div className="flex flex-col gap-2 text-neutral-400 text-sm">
+ Paddle Sound
+    <div className=" p-4 bg-white/3 border border-border-subtle rounded-lg">
+      
 
       {state === "idle" && (
         <Button
@@ -146,6 +146,7 @@ export const AudioRecorder = ({ onRecorded }: AudioRecorderProps) => {
         {state === "recording" && "Recording... speak or make a noise!"}
         {state === "done" && "This plays when the ball hits your paddle"}
       </p>
+    </div>
     </div>
   );
 };
