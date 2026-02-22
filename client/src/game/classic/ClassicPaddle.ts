@@ -12,6 +12,7 @@ export class ClassicPaddle extends Container {
   private gfx = new Graphics();
   private edge!: Edge;
   private tangentVelocity = { x: 0, y: 0 };
+  private serverPosition_t = 0.5;
 
   constructor(edgeIndex: number, colorIndex: number, widthRatio = CLASSIC_PADDLE_WIDTH_RATIO) {
     super();
@@ -76,4 +77,15 @@ export class ClassicPaddle extends Container {
   public getEndpoints() {
     return getPaddleEndpoints(this.position_t, this.edge, this.widthRatio);
   }
+
+  public syncPosition(serverPosition: number) {
+    this.serverPosition_t = serverPosition;
+  }
+
+  public interpolate() {
+    this.position_t += (this.serverPosition_t - this.position_t) * 0.5;
+    this.updatePosition();
+  }
 }
+
+
