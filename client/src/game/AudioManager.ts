@@ -1,6 +1,6 @@
 const SOUNDS = {
   soundtrack: "/sounds/chill_loop.mp3",
-  boop: "/sounds/boop.mp3",
+  boomp: "/sounds/boomp.mp3",
   gameEnd: "/sounds/game_end.mp3",
   win: "/sounds/win.mp3",
 } as const;
@@ -69,11 +69,13 @@ export class AudioManager {
     this.soundtrackSource = null;
     this.soundtrackGain = null;
   }
+  
 
-  /** Play the fallback boop (used when no recorded paddle sound exists). */
-  playBoop() {
-    this.playOneShot("boop");
-  }
+  /** Play the fallback boomp (used when no recorded paddle sound exists). */
+ playBoomp() {
+  const sound = Math.random() > 0.5 ? "boomp" : "boomp2";
+  this.playOneShot(sound);
+}
 
   playGameEnd() {
     this.playOneShot("gameEnd");
@@ -94,6 +96,7 @@ export class AudioManager {
   get audioContext() {
     return this.ctx;
   }
+  
 
   private playOneShot(key: string) {
     const buffer = this.buffers.get(key);
