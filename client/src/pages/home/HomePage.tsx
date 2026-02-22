@@ -9,7 +9,7 @@ export const HomePage = () => {
   return (
     <div className="flex items-center justify-center w-full h-full">
       <div className="p-10 w-[400px] max-w-[90vw] text-center">
-        <h1 className="m-0">PONG ARENA</h1>
+        <h1 className="m-0">MMORPONG</h1>
         <p className="text-text-muted mb-8">Multiplayer pong</p>
 
         <div className="flex flex-col gap-4">

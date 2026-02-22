@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { PLAYER_COLORS, MAX_PLAYERS } from "shared";
+import { PLAYER_COLORS, PLAYER_BG_COLORS, MAX_PLAYERS } from "shared";
 import type { BaseGameState } from "shared";
 import type { Room } from "@colyseus/sdk";
 import { uploadPlayerAudio } from "@/network/client";
@@ -77,8 +77,14 @@ export const WaitingRoom = ({ room, onGameStart, onLeave }: WaitingRoomProps) =>
     onLeave();
   };
 
+  const myColorIndex = players.find((p) => p.sessionId === room.sessionId)?.colorIndex ?? 0;
+  const bgColor = PLAYER_BG_COLORS[myColorIndex % PLAYER_BG_COLORS.length];
+
   return (
-    <div className="flex items-center justify-center w-full h-full">
+    <div
+      className="flex items-center justify-center w-full h-full"
+      style={{ backgroundColor: bgColor }}
+    >
       <div className="p-10 w-[420px] max-w-[90vw] text-center">
         <h2 className="m-0 mb-2">Waiting for Players</h2>
         <p className="m-0 text-neutral-400">

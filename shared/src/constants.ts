@@ -23,6 +23,21 @@ export const PLAYER_COLORS = [
   "#a3a3a3", // neutral-400
 ] as const;
 
+export const PLAYER_BG_COLORS = [
+  "#450a0a", // red-950
+  "#172554", // blue-950
+  "#052e16", // green-950
+  "#422006", // yellow-950
+  "#431407", // orange-950
+  "#3b0764", // purple-950
+  "#052e16", // green-950
+  "#082f49", // sky-950
+  "#4a044e", // fuchsia-950
+  "#4c0519", // rose-950
+  "#042f2e", // teal-950
+  "#0a0a0a", // neutral-950
+] as const;
+
 // --- Classic mode constants ---
 
 export const CLASSIC_ARENA_RADIUS = 350;

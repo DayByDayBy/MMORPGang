@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Application } from "pixi.js";
 import type { GameMode, BaseGameState } from "shared";
+import { PLAYER_BG_COLORS } from "shared";
 import type { Room } from "@colyseus/sdk";
 import { ClassicGame } from "./classic/ClassicGame";
 import { ClassicOnlineGame } from "./classic/ClassicOnlineGame";
@@ -40,6 +41,15 @@ export const GameScene = (props: GameSceneProps) => {
   const playerName = mode === "local" ? props.playerName : "";
   const room = mode === "online" ? props.room : null;
 
+  const bgColor = (() => {
+    if (mode === "online" && room) {
+      const me = (room.state as any).players?.get(room.sessionId);
+      const idx = me?.colorIndex ?? 0;
+      return PLAYER_BG_COLORS[idx % PLAYER_BG_COLORS.length];
+    }
+    return "#0a0a1a";
+  })();
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -52,7 +62,7 @@ export const GameScene = (props: GameSceneProps) => {
     const setup = async () => {
       const el = containerRef.current!;
       await app.init({
-        background: 0x0a0a1a,
+        backgroundAlpha: 0,
         width: el.clientWidth || window.innerWidth,
         height: el.clientHeight || window.innerHeight,
         resizeTo: el,
@@ -105,7 +115,7 @@ export const GameScene = (props: GameSceneProps) => {
   };
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full" style={{ backgroundColor: bgColor }}>
       <div ref={containerRef} className="w-full h-full" />
 
       <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-6">
