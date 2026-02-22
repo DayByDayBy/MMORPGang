@@ -1,6 +1,12 @@
 import { Application, Container, Ticker } from "pixi.js";
-import { CLASSIC_ARENA_RADIUS, CLASSIC_PADDLE_SPEED } from "shared";
-import type { ClassicGameState, ClassicPlayerState } from "shared";
+import {
+  CLASSIC_ARENA_RADIUS,
+  CLASSIC_PADDLE_SPEED,
+  computeEdges,
+  getArenaConfig,
+  classicPhysicsStep,
+} from "shared";
+import type { ClassicGameState, ClassicPlayerState, Edge, BallState, ClassicSimPlayer } from "shared";
 import type { Room } from "@colyseus/sdk";
 import type { HudPlayer } from "../GameHud";
 import { SERVER_URL } from "../../network/client";
@@ -8,6 +14,9 @@ import { ClassicArena } from "./ClassicArena";
 import { ClassicPaddle } from "./ClassicPaddle";
 import { Ball } from "../Ball";
 import { AudioManager } from "../AudioManager";
+
+const SNAP_DIST_SQ = 400;
+const CORRECTION_RATE = 8;
 
 interface RemotePlayer {
   sessionId: string;
@@ -37,6 +46,10 @@ export class ClassicOnlineGame {
   private lastSentPaddlePosition = -1;
   private onHudUpdate: (players: HudPlayer[]) => void;
 
+  private edges: Edge[] = [];
+  private predictedBall: BallState = { x: 0, y: 0, vx: 0, vy: 0 };
+  private serverBall: BallState = { x: 0, y: 0, vx: 0, vy: 0 };
+
   constructor(app: Application, room: Room<ClassicGameState>, onHudUpdate: (players: HudPlayer[]) => void) {
     this.app = app;
     this.room = room;
@@ -56,6 +69,9 @@ export class ClassicOnlineGame {
 
     const playerCount = state.players.size;
     this.arena = new ClassicArena(playerCount, serverRadius);
+
+    const arenaConfig = getArenaConfig(playerCount);
+    this.edges = computeEdges(arenaConfig.numSides, serverRadius);
 
     const maxFitRadius = Math.min(this.app.screen.width, this.app.screen.height) * 0.38;
     const scale = Math.min(1, maxFitRadius / serverRadius);
@@ -131,7 +147,24 @@ export class ClassicOnlineGame {
   private syncState() {
     const state = this.room.state;
 
-    this.ball.syncState(state.ball);
+    this.serverBall = {
+      x: state.ball.x,
+      y: state.ball.y,
+      vx: state.ball.vx,
+      vy: state.ball.vy,
+    };
+
+    const dx = this.serverBall.x - this.predictedBall.x;
+    const dy = this.serverBall.y - this.predictedBall.y;
+    const distSq = dx * dx + dy * dy;
+
+    this.predictedBall.vx = this.serverBall.vx;
+    this.predictedBall.vy = this.serverBall.vy;
+
+    if (distSq > SNAP_DIST_SQ) {
+      this.predictedBall.x = this.serverBall.x;
+      this.predictedBall.y = this.serverBall.y;
+    }
 
     state.players.forEach((p: ClassicPlayerState, sessionId: string) => {
       const rp = this.players.get(sessionId);
@@ -163,16 +196,52 @@ export class ClassicOnlineGame {
   private renderLoop = (ticker: Ticker) => {
     if (this.destroyed) return;
     const dt = ticker.deltaMS / 1000;
-    this.ball.interpolate(dt);
-    
+
+    this.handleInput();
+
+    const simPlayers = this.buildSimPlayers();
+    const result = classicPhysicsStep({
+      ball: this.predictedBall,
+      edges: this.edges,
+      players: simPlayers,
+      arenaRadius: this.room.state.arenaRadius || CLASSIC_ARENA_RADIUS,
+    });
+
+    if (!result.ballReset) {
+      this.predictedBall = result.ball;
+    }
+
+    const corrDx = this.serverBall.x - this.predictedBall.x;
+    const corrDy = this.serverBall.y - this.predictedBall.y;
+    const corrDistSq = corrDx * corrDx + corrDy * corrDy;
+    if (corrDistSq > 1 && corrDistSq <= SNAP_DIST_SQ) {
+      const t = 1 - Math.exp(-CORRECTION_RATE * dt);
+      this.predictedBall.x += corrDx * t;
+      this.predictedBall.y += corrDy * t;
+    }
+
+    this.ball.x = this.predictedBall.x;
+    this.ball.y = this.predictedBall.y;
+
     for (const [sessionId, rp] of this.players) {
       if (sessionId !== this.room.sessionId) {
         rp.paddle.interpolate(dt);
       }
     }
-    
-    this.handleInput();
   };
+
+  private buildSimPlayers(): ClassicSimPlayer[] {
+    const simPlayers: ClassicSimPlayer[] = [];
+    for (const [, rp] of this.players) {
+      simPlayers.push({
+        edgeIndex: rp.edgeIndex,
+        paddlePosition: rp.paddle.position_t,
+        prevPaddlePosition: rp.paddle.position_t,
+        eliminated: rp.eliminated,
+      });
+    }
+    return simPlayers;
+  }
 
   private handleInput() {
     const me = this.players.get(this.room.sessionId);

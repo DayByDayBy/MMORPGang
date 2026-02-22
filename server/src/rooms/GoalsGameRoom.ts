@@ -1,13 +1,9 @@
 import { GoalsPlayerSchema, GoalsGameRoomState } from "../schema/goals";
 import { BaseGameRoom } from "./BaseGameRoom";
 import {
-  bounceOffCircularWall,
-  checkGoalsPaddleCollision,
-  checkGoalsGoalCollision,
+  goalsPhysicsStep,
   getGoalsSlotAngles,
-  clampSpeed,
   BALL_SPEED,
-  BALL_RADIUS,
   GOALS_ARENA_RADIUS,
   GOALS_GOAL_RING_RADIUS,
   GOALS_GOAL_RADIUS,
@@ -15,10 +11,9 @@ import {
   GOALS_PADDLE_ARC,
   GOALS_ORBIT_SPEED,
   GOALS_ORBIT_ACCEL,
-  GOALS_MAX_BALL_SPEED,
   GOALS_LIVES,
 } from "shared";
-import type { BallState } from "shared";
+import type { GoalsSimPlayer } from "shared";
 
 export class GoalsGameRoom extends BaseGameRoom {
   state = new GoalsGameRoomState();
@@ -80,53 +75,51 @@ export class GoalsGameRoom extends BaseGameRoom {
 
     this.applyInputs();
 
-    this.state.ball.x += this.ballVx;
-    this.state.ball.y += this.ballVy;
+    const simPlayers: GoalsSimPlayer[] = [];
+    const sessionIds: string[] = [];
+    this.state.players.forEach((player, sid) => {
+      simPlayers.push({
+        goalAngle: player.goalAngle,
+        paddleAngle: player.paddleAngle,
+        eliminated: player.eliminated,
+      });
+      sessionIds.push(sid);
+    });
 
-    const ballState: BallState = {
-      x: this.state.ball.x,
-      y: this.state.ball.y,
-      vx: this.ballVx,
-      vy: this.ballVy,
-    };
+    const result = goalsPhysicsStep({
+      ball: { x: this.state.ball.x, y: this.state.ball.y, vx: this.ballVx, vy: this.ballVy },
+      players: simPlayers,
+      arenaRadius: GOALS_ARENA_RADIUS,
+      goalRingRadius: GOALS_GOAL_RING_RADIUS,
+      goalRadius: GOALS_GOAL_RADIUS,
+      orbitRadius: GOALS_ORBIT_RADIUS,
+      paddleArc: GOALS_PADDLE_ARC,
+    });
 
-    bounceOffCircularWall(ballState, GOALS_ARENA_RADIUS, BALL_RADIUS);
-
-    this.state.players.forEach((player) => {
-      if (player.eliminated) return;
-
-      const goalX = Math.cos(player.goalAngle) * GOALS_GOAL_RING_RADIUS;
-      const goalY = Math.sin(player.goalAngle) * GOALS_GOAL_RING_RADIUS;
-
-      const saved = checkGoalsPaddleCollision(
-        ballState, player.paddleAngle, GOALS_PADDLE_ARC,
-        goalX, goalY, GOALS_ORBIT_RADIUS, BALL_RADIUS,
-      );
-
-      if (saved) {
-        this.broadcast("paddle_hit", { sessionId: player.sessionId });
-      } else if (checkGoalsGoalCollision(ballState, goalX, goalY, GOALS_GOAL_RADIUS, GOALS_ORBIT_RADIUS, BALL_RADIUS)) {
+    for (const event of result.events) {
+      const sid = sessionIds[event.playerIndex];
+      if (event.type === "paddle_hit") {
+        this.broadcast("paddle_hit", { sessionId: sid });
+      } else if (event.type === "scored") {
+        const player = this.state.players.get(sid)!;
         player.lives--;
-        this.broadcast("player_scored", { scoredOnId: player.sessionId });
-
+        this.broadcast("player_scored", { scoredOnId: sid });
         if (player.lives <= 0) {
           player.eliminated = true;
           this.checkWinCondition();
         }
-        this.resetBall();
-        ballState.x = this.state.ball.x;
-        ballState.y = this.state.ball.y;
-        ballState.vx = this.ballVx;
-        ballState.vy = this.ballVy;
-        return;
       }
-    });
+    }
 
-    const clamped = clampSpeed(ballState.vx, ballState.vy, GOALS_MAX_BALL_SPEED);
-    this.ballVx = clamped.x;
-    this.ballVy = clamped.y;
-    this.state.ball.x = ballState.x;
-    this.state.ball.y = ballState.y;
+    if (result.ballReset) {
+      this.resetBall();
+    } else {
+      this.state.ball.x = result.ball.x;
+      this.state.ball.y = result.ball.y;
+      this.ballVx = result.ball.vx;
+      this.ballVy = result.ball.vy;
+    }
+
     this.state.ball.vx = this.ballVx;
     this.state.ball.vy = this.ballVy;
   }

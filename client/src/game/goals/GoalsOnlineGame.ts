@@ -5,8 +5,10 @@ import {
   GOALS_GOAL_RADIUS,
   GOALS_ORBIT_RADIUS,
   GOALS_ORBIT_SPEED,
+  GOALS_PADDLE_ARC,
+  goalsPhysicsStep,
 } from "shared";
-import type { GoalsGameState, GoalsPlayerState } from "shared";
+import type { GoalsGameState, GoalsPlayerState, BallState, GoalsSimPlayer } from "shared";
 import type { Room } from "@colyseus/sdk";
 import type { HudPlayer } from "../GameHud";
 import { SERVER_URL } from "../../network/client";
@@ -15,6 +17,9 @@ import { GoalsGoal } from "./GoalsGoal";
 import { GoalsPaddle } from "./GoalsPaddle";
 import { Ball } from "../Ball";
 import { AudioManager } from "../AudioManager";
+
+const SNAP_DIST_SQ = 400;
+const CORRECTION_RATE = 8;
 
 interface RemotePlayer {
   sessionId: string;
@@ -45,6 +50,9 @@ export class GoalsOnlineGame {
   private playerSounds = new Map<string, AudioBuffer>();
   private localInput = { left: false, right: false };
   private onHudUpdate: (players: HudPlayer[]) => void;
+
+  private predictedBall: BallState = { x: 0, y: 0, vx: 0, vy: 0 };
+  private serverBall: BallState = { x: 0, y: 0, vx: 0, vy: 0 };
 
   constructor(app: Application, room: Room<GoalsGameState>, onHudUpdate: (players: HudPlayer[]) => void) {
     this.app = app;
@@ -153,7 +161,24 @@ export class GoalsOnlineGame {
     const state = this.room.state;
     const goalRingRadius = (state as any).goalRingRadius || GOALS_GOAL_RING_RADIUS;
 
-    this.ball.syncState(state.ball);
+    this.serverBall = {
+      x: state.ball.x,
+      y: state.ball.y,
+      vx: state.ball.vx,
+      vy: state.ball.vy,
+    };
+
+    const dx = this.serverBall.x - this.predictedBall.x;
+    const dy = this.serverBall.y - this.predictedBall.y;
+    const distSq = dx * dx + dy * dy;
+
+    this.predictedBall.vx = this.serverBall.vx;
+    this.predictedBall.vy = this.serverBall.vy;
+
+    if (distSq > SNAP_DIST_SQ) {
+      this.predictedBall.x = this.serverBall.x;
+      this.predictedBall.y = this.serverBall.y;
+    }
 
     state.players.forEach((p: GoalsPlayerState, sessionId: string) => {
       const rp = this.players.get(sessionId);
@@ -214,8 +239,46 @@ export class GoalsOnlineGame {
   private renderLoop = (ticker: Ticker) => {
     if (this.destroyed) return;
     const dt = ticker.deltaMS / 1000;
-    this.ball.interpolate(dt);
+
+    const simPlayers = this.buildSimPlayers();
+    const result = goalsPhysicsStep({
+      ball: this.predictedBall,
+      players: simPlayers,
+      arenaRadius: (this.room.state as any).arenaRadius || GOALS_ARENA_RADIUS,
+      goalRingRadius: (this.room.state as any).goalRingRadius || GOALS_GOAL_RING_RADIUS,
+      goalRadius: (this.room.state as any).goalRadius || GOALS_GOAL_RADIUS,
+      orbitRadius: (this.room.state as any).orbitRadius || GOALS_ORBIT_RADIUS,
+      paddleArc: GOALS_PADDLE_ARC,
+    });
+
+    if (!result.ballReset) {
+      this.predictedBall = result.ball;
+    }
+
+    const corrDx = this.serverBall.x - this.predictedBall.x;
+    const corrDy = this.serverBall.y - this.predictedBall.y;
+    const corrDistSq = corrDx * corrDx + corrDy * corrDy;
+    if (corrDistSq > 1 && corrDistSq <= SNAP_DIST_SQ) {
+      const t = 1 - Math.exp(-CORRECTION_RATE * dt);
+      this.predictedBall.x += corrDx * t;
+      this.predictedBall.y += corrDy * t;
+    }
+
+    this.ball.x = this.predictedBall.x;
+    this.ball.y = this.predictedBall.y;
   };
+
+  private buildSimPlayers(): GoalsSimPlayer[] {
+    const simPlayers: GoalsSimPlayer[] = [];
+    for (const [, rp] of this.players) {
+      simPlayers.push({
+        goalAngle: rp.goalAngle,
+        paddleAngle: rp.paddleAngle,
+        eliminated: rp.eliminated,
+      });
+    }
+    return simPlayers;
+  }
 
   private emitHud() {
     const players: HudPlayer[] = [];

@@ -3,19 +3,12 @@ import { BaseGameRoom } from "./BaseGameRoom";
 import {
   computeEdges,
   getArenaConfig,
-  ballNearSegment,
-  ballPassedEdge,
-  reflectVelocity,
-  clampSpeed,
-  getPaddleEndpoints,
+  classicPhysicsStep,
   BALL_SPEED,
-  BALL_RADIUS,
-  CLASSIC_MAX_BALL_SPEED,
   DEFAULT_LIVES,
   CLASSIC_ARENA_RADIUS,
-  CLASSIC_PADDLE_WIDTH_RATIO,
 } from "shared";
-import type { Edge, Vector2, ArenaConfig } from "shared";
+import type { Edge, ArenaConfig, ClassicSimPlayer } from "shared";
 
 export class ClassicGameRoom extends BaseGameRoom {
   state = new ClassicGameRoomState();
@@ -24,9 +17,7 @@ export class ClassicGameRoom extends BaseGameRoom {
 
   private edges: Edge[] = [];
   private arenaConfig!: ArenaConfig;
-  private ballHitDistSq = (BALL_RADIUS + 4) ** 2;
   private prevPaddlePositions = new Map<string, number>();
-  private playersByEdge = new Map<number, ClassicPlayerSchema>();
 
   protected getPlayers() {
     return this.state.players;
@@ -74,14 +65,47 @@ export class ClassicGameRoom extends BaseGameRoom {
   protected gameLoop() {
     if (this.state.phase !== "playing") return;
 
-    this.state.ball.x += this.ballVx;
-    this.state.ball.y += this.ballVy;
+    const simPlayers: ClassicSimPlayer[] = [];
+    const sessionIds: string[] = [];
+    this.state.players.forEach((player, sid) => {
+      simPlayers.push({
+        edgeIndex: player.edgeIndex,
+        paddlePosition: player.paddlePosition,
+        prevPaddlePosition: this.prevPaddlePositions.get(sid) ?? player.paddlePosition,
+        eliminated: player.eliminated,
+      });
+      sessionIds.push(sid);
+    });
 
-    this.checkCollisions();
+    const result = classicPhysicsStep({
+      ball: { x: this.state.ball.x, y: this.state.ball.y, vx: this.ballVx, vy: this.ballVy },
+      edges: this.edges,
+      players: simPlayers,
+      arenaRadius: this.state.arenaRadius,
+    });
 
-    const dist = Math.sqrt(this.state.ball.x ** 2 + this.state.ball.y ** 2);
-    if (dist > this.state.arenaRadius * 1.5) {
+    for (const event of result.events) {
+      const sid = sessionIds[event.playerIndex];
+      if (event.type === "paddle_hit") {
+        this.broadcast("paddle_hit", { sessionId: sid });
+      } else if (event.type === "scored") {
+        const player = this.state.players.get(sid)!;
+        player.lives--;
+        this.broadcast("player_scored", { scoredOnId: sid });
+        if (player.lives <= 0) {
+          player.eliminated = true;
+          this.checkWinCondition();
+        }
+      }
+    }
+
+    if (result.ballReset) {
       this.resetBall();
+    } else {
+      this.state.ball.x = result.ball.x;
+      this.state.ball.y = result.ball.y;
+      this.ballVx = result.ball.vx;
+      this.ballVy = result.ball.vy;
     }
 
     this.state.ball.vx = this.ballVx;
@@ -114,75 +138,5 @@ export class ClassicGameRoom extends BaseGameRoom {
     } else {
       this.launchBallRandom();
     }
-  }
-
-  private checkCollisions() {
-    this.buildPlayersByEdge();
-    const { x: bx, y: by } = this.state.ball;
-
-    for (let i = 0; i < this.edges.length; i++) {
-      const edge = this.edges[i];
-      const player = this.playersByEdge.get(i);
-
-      if (!player || player.eliminated) {
-        if (ballNearSegment(bx, by, edge.start, edge.end, this.ballHitDistSq)) {
-          this.reflectBall(edge.normal);
-          this.pushBallIn(edge);
-        }
-        continue;
-      }
-
-      const endpoints = getPaddleEndpoints(player.paddlePosition, edge, CLASSIC_PADDLE_WIDTH_RATIO);
-      if (ballNearSegment(bx, by, endpoints.start, endpoints.end, this.ballHitDistSq)) {
-        this.reflectBall(edge.normal);
-        this.applyPaddleSpin(player, edge);
-        this.pushBallIn(edge);
-        this.broadcast("paddle_hit", { sessionId: player.sessionId });
-        continue;
-      }
-
-      if (ballPassedEdge(bx, by, BALL_RADIUS, edge)) {
-        player.lives--;
-        this.broadcast("player_scored", { scoredOnId: player.sessionId });
-
-        if (player.lives <= 0) {
-          player.eliminated = true;
-          this.checkWinCondition();
-        }
-        this.resetBall();
-        break;
-      }
-    }
-  }
-
-  private buildPlayersByEdge() {
-    this.playersByEdge.clear();
-    this.state.players.forEach((player) => {
-      this.playersByEdge.set(player.edgeIndex, player);
-    });
-  }
-
-  private reflectBall(normal: Vector2) {
-    const v = reflectVelocity(this.ballVx, this.ballVy, normal);
-    const clamped = clampSpeed(v.x, v.y, CLASSIC_MAX_BALL_SPEED);
-    this.ballVx = clamped.x;
-    this.ballVy = clamped.y;
-  }
-
-  private applyPaddleSpin(player: ClassicPlayerSchema, edge: Edge) {
-    const prev = this.prevPaddlePositions.get(player.sessionId) ?? player.paddlePosition;
-    const velocity_t = player.paddlePosition - prev;
-    const speed = velocity_t * edge.length;
-    const influence = 0.6;
-    this.ballVx += Math.cos(edge.angle) * speed * influence;
-    this.ballVy += Math.sin(edge.angle) * speed * influence;
-    const clamped = clampSpeed(this.ballVx, this.ballVy, CLASSIC_MAX_BALL_SPEED);
-    this.ballVx = clamped.x;
-    this.ballVy = clamped.y;
-  }
-
-  private pushBallIn(edge: { normal: Vector2 }) {
-    this.state.ball.x -= edge.normal.x * 2;
-    this.state.ball.y -= edge.normal.y * 2;
   }
 }
