@@ -5,6 +5,8 @@ import type { BallState, BasePlayerState, BaseGameState } from "shared";
 export class BaseBallSchema extends Schema implements BallState {
   @type("float32") x: number = 0;
   @type("float32") y: number = 0;
+  @type("float32") vx: number = 0;
+  @type("float32") vy: number = 0;
 }
 
 export class BasePlayerSchema extends Schema implements BasePlayerState {
