@@ -40,6 +40,15 @@ export abstract class BaseGameRoom extends Room {
       if (name) player.name = name;
     },
 
+    "set_emoji": (client: Client, data: { emoji?: string }) => {
+      const player = this.getPlayers().get(client.sessionId);
+      if (!player || this.typedState.phase !== "waiting") return;
+      const emoji = data?.emoji;
+      if (typeof emoji === "string" && [...emoji].length === 1) {
+        player.emoji = emoji;
+      }
+    },
+
     "audio_uploaded": (client: Client) => {
       this.audioSessionIds.add(client.sessionId);
       this.broadcast("audio_ready", { sessionId: client.sessionId }, { except: client });

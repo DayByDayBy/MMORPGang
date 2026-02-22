@@ -21,6 +21,7 @@ export const LocalPlayPage = () => {
       gameMode={localState.gameMode}
       playerCount={localState.playerCount}
       playerName={localState.playerName}
+      playerEmoji={localState.playerEmoji}
       onExit={handleExit}
     />
   );

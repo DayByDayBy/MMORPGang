@@ -1,4 +1,5 @@
 import { Schema, type } from "@colyseus/schema";
+import { DEFAULT_EMOJI } from "shared";
 import type { BallState, BasePlayerState, BaseGameState } from "shared";
 
 export class BaseBallSchema extends Schema implements BallState {
@@ -9,6 +10,7 @@ export class BaseBallSchema extends Schema implements BallState {
 export class BasePlayerSchema extends Schema implements BasePlayerState {
   @type("string") sessionId: string = "";
   @type("string") name: string = "";
+  @type("string") emoji: string = DEFAULT_EMOJI;
   @type("uint8") lives: number = 3;
   @type("boolean") eliminated: boolean = false;
   @type("boolean") ready: boolean = false;

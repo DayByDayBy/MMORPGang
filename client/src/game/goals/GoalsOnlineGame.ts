@@ -1,6 +1,5 @@
-import { Application, Container, Text, TextStyle } from "pixi.js";
+import { Application, Container } from "pixi.js";
 import {
-  PLAYER_COLORS,
   GOALS_ARENA_RADIUS,
   GOALS_GOAL_RING_RADIUS,
   GOALS_GOAL_RADIUS,
@@ -9,6 +8,7 @@ import {
 } from "shared";
 import type { GoalsGameState, GoalsPlayerState } from "shared";
 import type { Room } from "@colyseus/sdk";
+import type { HudPlayer } from "../GameHud";
 import { SERVER_URL } from "../../network/client";
 import { GoalsArena } from "./GoalsArena";
 import { GoalsGoal } from "./GoalsGoal";
@@ -19,6 +19,7 @@ import { AudioManager } from "../AudioManager";
 interface RemotePlayer {
   sessionId: string;
   name: string;
+  emoji: string;
   colorIndex: number;
   goalAngle: number;
   paddleAngle: number;
@@ -35,8 +36,6 @@ export class GoalsOnlineGame {
   private ball!: Ball;
   private players = new Map<string, RemotePlayer>();
   private world = new Container();
-  private hud = new Container();
-  private hudTexts: Text[] = [];
   private keys = new Set<string>();
   private onGameOver?: (winnerName: string) => void;
   private onEliminated?: () => void;
@@ -45,17 +44,18 @@ export class GoalsOnlineGame {
   private audio = new AudioManager();
   private playerSounds = new Map<string, AudioBuffer>();
   private localInput = { left: false, right: false };
+  private onHudUpdate: (players: HudPlayer[]) => void;
 
-  constructor(app: Application, room: Room<GoalsGameState>) {
+  constructor(app: Application, room: Room<GoalsGameState>, onHudUpdate: (players: HudPlayer[]) => void) {
     this.app = app;
     this.room = room;
+    this.onHudUpdate = onHudUpdate;
   }
 
   async init(onGameOver: (winnerName: string) => void, onEliminated?: () => void) {
     this.onGameOver = onGameOver;
     this.onEliminated = onEliminated;
     this.app.stage.addChild(this.world);
-    this.app.stage.addChild(this.hud);
 
     this.world.x = this.app.screen.width / 2;
     this.world.y = this.app.screen.height / 2;
@@ -77,7 +77,7 @@ export class GoalsOnlineGame {
       this.addPlayer(sessionId, p);
     });
 
-    this.buildHud();
+    this.emitHud();
 
     this.room.onStateChange(() => {
       if (this.destroyed) return;
@@ -138,6 +138,7 @@ export class GoalsOnlineGame {
     this.players.set(sessionId, {
       sessionId,
       name: p.name,
+      emoji: p.emoji,
       colorIndex: p.colorIndex,
       goalAngle: p.goalAngle,
       paddleAngle: p.paddleAngle,
@@ -174,7 +175,7 @@ export class GoalsOnlineGame {
       }
     });
 
-    this.updateHud();
+    this.emitHud();
 
     if (!this.localEliminated) {
       const me = this.players.get(this.room.sessionId);
@@ -215,41 +216,19 @@ export class GoalsOnlineGame {
     this.ball.interpolate();
   };
 
-  private buildHud() {
-    const style = new TextStyle({
-      fontFamily: "Segoe UI, system-ui, sans-serif",
-      fontSize: 14,
-      fontWeight: "bold",
-    });
-
-    let i = 0;
+  private emitHud() {
+    const players: HudPlayer[] = [];
     for (const [, rp] of this.players) {
-      const label = rp.sessionId === this.room.sessionId
-        ? `${rp.name} (you)`
-        : rp.name;
-
-      const text = new Text({
-        text: `${label}: ${"♥".repeat(rp.lives)}`,
-        style: { ...style, fill: PLAYER_COLORS[rp.colorIndex % PLAYER_COLORS.length] },
+      players.push({
+        name: rp.name,
+        emoji: rp.emoji,
+        lives: rp.lives,
+        eliminated: rp.eliminated,
+        colorIndex: rp.colorIndex,
+        isLocal: rp.sessionId === this.room.sessionId,
       });
-      text.x = 16;
-      text.y = 16 + i * 24;
-      this.hud.addChild(text);
-      this.hudTexts.push(text);
-      i++;
     }
-  }
-
-  private updateHud() {
-    let i = 0;
-    for (const [, rp] of this.players) {
-      if (i >= this.hudTexts.length) break;
-      const label = rp.sessionId === this.room.sessionId
-        ? `${rp.name} (you)`
-        : rp.name;
-      this.hudTexts[i].text = `${label}: ${rp.eliminated ? "OUT" : "♥".repeat(rp.lives)}`;
-      i++;
-    }
+    this.onHudUpdate(players);
   }
 
   private async fetchPlayerAudio(sessionId: string) {
@@ -290,7 +269,6 @@ export class GoalsOnlineGame {
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
     this.world.destroy({ children: true });
-    this.hud.destroy({ children: true });
     this.room.removeAllListeners();
     this.audio.destroy();
   }

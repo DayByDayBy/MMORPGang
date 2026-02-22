@@ -1,7 +1,7 @@
-import { Application, Container, Text, TextStyle, Ticker } from "pixi.js";
+import { Application, Container, Ticker } from "pixi.js";
 import {
-  PLAYER_COLORS,
   BALL_SPEED,
+  BOT_EMOJI,
   GOALS_ARENA_RADIUS,
   GOALS_GOAL_RING_RADIUS,
   GOALS_GOAL_RADIUS,
@@ -23,8 +23,10 @@ import {
   getGoalsSlotAngles,
   clampSpeed,
   BALL_RADIUS,
+  angleDiff,
 } from "shared";
 import type { GoalsBallState } from "shared";
+import type { HudPlayer } from "../GameHud";
 import { GoalsArena } from "./GoalsArena";
 import { GoalsGoal } from "./GoalsGoal";
 import { GoalsPaddle } from "./GoalsPaddle";
@@ -46,6 +48,7 @@ interface PlayerState {
   lives: number;
   eliminated: boolean;
   name: string;
+  emoji: string;
   ai?: AIState;
 }
 
@@ -55,8 +58,6 @@ export class GoalsGame {
   private balls: Ball[] = [];
   private players: PlayerState[] = [];
   private world = new Container();
-  private hud = new Container();
-  private hudTexts: Text[] = [];
   private keys = new Set<string>();
   private tickAccumulator = 0;
   private running = false;
@@ -64,15 +65,16 @@ export class GoalsGame {
   private hudDirty = true;
   private audio = new AudioManager();
   private ballSpawnTimer = 0;
+  private onHudUpdate: (players: HudPlayer[]) => void;
 
-  constructor(app: Application) {
+  constructor(app: Application, onHudUpdate: (players: HudPlayer[]) => void) {
     this.app = app;
+    this.onHudUpdate = onHudUpdate;
   }
 
-  async init(playerCount: number, playerName: string, onGameOver: (winnerName: string | null) => void) {
+  async init(playerCount: number, playerName: string, playerEmoji: string, onGameOver: (winnerName: string | null) => void) {
     this.onGameOver = onGameOver;
     this.app.stage.addChild(this.world);
-    this.app.stage.addChild(this.hud);
 
     this.world.x = this.app.screen.width / 2;
     this.world.y = this.app.screen.height / 2;
@@ -107,6 +109,7 @@ export class GoalsGame {
         lives: GOALS_LIVES,
         eliminated: false,
         name: i === 0 ? playerName : `Bot ${i}`,
+        emoji: i === 0 ? playerEmoji : BOT_EMOJI,
         ai: i === 0 ? undefined : {
           speed: GOALS_ORBIT_SPEED,
           roamTarget: goalAngle + Math.PI,
@@ -118,7 +121,7 @@ export class GoalsGame {
 
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
-    this.buildHud();
+    this.emitHud();
     
     const initialBalls = Math.max(1, playerCount - 1);
     for (let i = 0; i < initialBalls; i++) {
@@ -149,7 +152,7 @@ export class GoalsGame {
       this.checkCollisions();
       this.renderPlayers();
       if (this.hudDirty) {
-        this.updateHud();
+        this.emitHud();
         this.hudDirty = false;
       }
       
@@ -204,18 +207,18 @@ export class GoalsGame {
       if (nearestBall && nearestDist < GOALS_ARENA_RADIUS * 0.6) {
         const dx = nearestBall.x - goalX;
         const dy = nearestBall.y - goalY;
-        const ballAngle = Math.atan2(dy, dx);
-        let target = player.paddleAngle;
-        target += (ballAngle - target) * 0.15;
-        player.paddleAngle += (target - player.paddleAngle) * GOALS_ORBIT_ACCEL;
+        const targetAngle = Math.atan2(dy, dx);
+        const diff = angleDiff(targetAngle, player.paddleAngle);
+        const step = Math.sign(diff) * Math.min(Math.abs(diff), GOALS_ORBIT_SPEED);
+        player.paddleAngle += step * GOALS_ORBIT_ACCEL;
       } else {
         player.ai.roamTimer--;
         if (player.ai.roamTimer <= 0) {
           player.ai.roamTarget = player.goalAngle + (Math.random() - 0.5) * 1.0;
           player.ai.roamTimer = 40 + Math.floor(Math.random() * 80);
         }
-        const target = player.ai.roamTarget;
-        player.paddleAngle += (target - player.paddleAngle) * 0.05;
+        const diff = angleDiff(player.ai.roamTarget, player.paddleAngle);
+        player.paddleAngle += diff * 0.05;
       }
 
       player.paddle.paddleAngle = player.paddleAngle;
@@ -350,31 +353,15 @@ export class GoalsGame {
     }
   }
 
-  private buildHud() {
-    const style = new TextStyle({
-      fontFamily: "Segoe UI, system-ui, sans-serif",
-      fontSize: 14,
-      fontWeight: "bold",
-    });
-
-    for (let i = 0; i < this.players.length; i++) {
-      const p = this.players[i];
-      const text = new Text({
-        text: `${p.name}: ${"♥".repeat(p.lives)}`,
-        style: { ...style, fill: PLAYER_COLORS[i % PLAYER_COLORS.length] },
-      });
-      text.x = 16;
-      text.y = 16 + i * 24;
-      this.hud.addChild(text);
-      this.hudTexts.push(text);
-    }
-  }
-
-  private updateHud() {
-    for (let i = 0; i < this.players.length; i++) {
-      const p = this.players[i];
-      this.hudTexts[i].text = `${p.name}: ${p.eliminated ? "OUT" : "♥".repeat(p.lives)}`;
-    }
+  private emitHud() {
+    this.onHudUpdate(this.players.map((p, i) => ({
+      name: p.name,
+      emoji: p.emoji,
+      lives: p.lives,
+      eliminated: p.eliminated,
+      colorIndex: i,
+      isLocal: i === 0,
+    })));
   }
 
   destroy() {
@@ -383,7 +370,6 @@ export class GoalsGame {
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
     this.world.destroy({ children: true });
-    this.hud.destroy({ children: true });
     this.audio.destroy();
   }
 }

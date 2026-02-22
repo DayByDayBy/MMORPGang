@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { PLAYER_COLORS, PLAYER_BG_COLORS, MAX_PLAYERS } from "shared";
+import { PLAYER_COLORS, PLAYER_BG_COLORS, MAX_PLAYERS, DEFAULT_EMOJI } from "shared";
 import type { BaseGameState } from "shared";
 import type { Room } from "@colyseus/sdk";
 import { uploadPlayerAudio } from "@/network/client";
@@ -9,6 +9,7 @@ import { AudioRecorder } from "./components/AudioRecorder";
 interface PlayerInfo {
   sessionId: string;
   name: string;
+  emoji: string;
   colorIndex: number;
   ready: boolean;
 }
@@ -23,6 +24,7 @@ export const WaitingRoom = ({ room, onGameStart, onLeave }: WaitingRoomProps) =>
   const [players, setPlayers] = useState<PlayerInfo[]>([]);
   const [myReady, setMyReady] = useState(false);
   const [editingName, setEditingName] = useState("");
+  const [selectedEmoji, setSelectedEmoji] = useState(DEFAULT_EMOJI);
   const nameCommittedRef = useRef(false);
 
   useEffect(() => {
@@ -34,6 +36,7 @@ export const WaitingRoom = ({ room, onGameStart, onLeave }: WaitingRoomProps) =>
         list.push({
           sessionId: key,
           name: p.name,
+          emoji: p.emoji ?? DEFAULT_EMOJI,
           colorIndex: p.colorIndex ?? 0,
           ready: p.ready,
         });
@@ -44,6 +47,7 @@ export const WaitingRoom = ({ room, onGameStart, onLeave }: WaitingRoomProps) =>
       if (me) {
         setMyReady(me.ready);
         if (!nameCommittedRef.current) setEditingName(me.name);
+        setSelectedEmoji(me.emoji ?? DEFAULT_EMOJI);
       }
 
       if (room.state.phase === "playing") {
@@ -98,7 +102,7 @@ export const WaitingRoom = ({ room, onGameStart, onLeave }: WaitingRoomProps) =>
           {players.length} / {MAX_PLAYERS} players
         </p>
 
-        <div className="my-5 p-4 bg-white/3 border border-border-subtle rounded-lg text-left">
+        <div className="my-5 p-4 bg-white/3 border border-border-subtle rounded-lg text-left flex flex-col gap-3">
           <label className="flex flex-col gap-2 text-neutral-400 text-sm">
             Your Name
             <input
@@ -116,6 +120,46 @@ export const WaitingRoom = ({ room, onGameStart, onLeave }: WaitingRoomProps) =>
             />
           </label>
 
+          
+
+          <div>
+            <span className="text-neutral-400 text-sm">Lives Emoji</span>
+            <div className="flex items-center gap-2 mt-1.5">
+              <input
+                type="text"
+                value={selectedEmoji}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const chars = [...raw];
+                  const emoji = chars[chars.length - 1] ?? DEFAULT_EMOJI;
+                  setSelectedEmoji(emoji);
+                  room.send("set_emoji", { emoji });
+                }}
+                className="w-12 h-10 text-center text-2xl border border-border bg-surface-elevated outline-none rounded shrink-0"
+              />
+              <div className="flex flex-wrap gap-1">
+                {[..."🦆⭐🔥⚡💀🌙🍀"].map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => {
+                      setSelectedEmoji(e);
+                      room.send("set_emoji", { emoji: e });
+                    }}
+                    className={`w-8 h-8 text-base flex items-center justify-center rounded cursor-pointer border transition-colors ${
+                      selectedEmoji === e
+                        ? "border-accent bg-accent/20"
+                        : "border-transparent hover:bg-white/10"
+                    }`}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          
           <AudioRecorder
             onRecorded={(audio) => uploadPlayerAudio(room, audio)}
           />
@@ -125,14 +169,11 @@ export const WaitingRoom = ({ room, onGameStart, onLeave }: WaitingRoomProps) =>
           {players.map((p) => (
             <li
               key={p.sessionId}
-              className="flex items-center gap-2.5 px-3 py-2 bg-white/3 border border-white/6"
+              className="flex items-center gap-2.5 px-3 py-2 bg-white/3 border-l-4"
+              style={{ borderColor: PLAYER_COLORS[p.colorIndex] }}
             >
-              <div
-                className="w-4 h-4 rounded-full shrink-0"
-                style={{ backgroundColor: PLAYER_COLORS[p.colorIndex] }}
-              />
               <span className="flex-1 text-left text-neutral-300">
-                {p.name}
+                {p.emoji} {p.name}
                 {p.sessionId === room.sessionId ? " (you)" : ""}
               </span>
               <span className={`text-[13px] ${p.ready ? "text-green-500" : "text-neutral-500"}`}>
