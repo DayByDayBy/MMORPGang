@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Application } from "pixi.js";
 import type { GameMode, BaseGameState } from "shared";
 import { PLAYER_BG_COLORS } from "shared";
@@ -7,6 +7,7 @@ import { ClassicGame } from "./classic/ClassicGame";
 import { ClassicOnlineGame } from "./classic/ClassicOnlineGame";
 import { GoalsGame } from "./goals/GoalsGame";
 import { GoalsOnlineGame } from "./goals/GoalsOnlineGame";
+import { GameHud, type HudPlayer } from "./GameHud";
 import { Button } from "@/components/Button";
 
 interface LocalGameProps {
@@ -35,6 +36,11 @@ type EndState =
 export const GameScene = (props: GameSceneProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [endState, setEndState] = useState<EndState>(null);
+  const [hudPlayers, setHudPlayers] = useState<HudPlayer[]>([]);
+
+  const onHudUpdate = useCallback((players: HudPlayer[]) => {
+    setHudPlayers(players);
+  }, []);
 
   const { mode, gameMode, onExit } = props;
   const playerCount = mode === "local" ? props.playerCount : 0;
@@ -73,23 +79,23 @@ export const GameScene = (props: GameSceneProps) => {
       el.appendChild(app.canvas);
 
       if (mode === "local" && gameMode === "classic") {
-        game = new ClassicGame(app);
+        game = new ClassicGame(app, onHudUpdate);
         await game.init(playerCount, playerName, (winnerName) => {
           setEndState(winnerName ? { kind: "win", name: winnerName } : { kind: "loss" });
         });
       } else if (mode === "local" && gameMode === "goals") {
-        game = new GoalsGame(app);
+        game = new GoalsGame(app, onHudUpdate);
         await game.init(playerCount, playerName, (winnerName) => {
           setEndState(winnerName ? { kind: "win", name: winnerName } : { kind: "loss" });
         });
       } else if (mode === "online" && gameMode === "classic") {
-        game = new ClassicOnlineGame(app, room! as any);
+        game = new ClassicOnlineGame(app, room! as any, onHudUpdate);
         await game.init(
           (winnerName) => setEndState({ kind: "win", name: winnerName }),
           () => setEndState({ kind: "eliminated" }),
         );
       } else if (mode === "online" && gameMode === "goals") {
-        game = new GoalsOnlineGame(app, room! as any);
+        game = new GoalsOnlineGame(app, room! as any, onHudUpdate);
         await game.init(
           (winnerName) => setEndState({ kind: "win", name: winnerName }),
           () => setEndState({ kind: "eliminated" }),
@@ -107,7 +113,7 @@ export const GameScene = (props: GameSceneProps) => {
         app.destroy(true, { children: true });
       }
     };
-  }, [mode, gameMode, playerCount, playerName, room]);
+  }, [mode, gameMode, playerCount, playerName, room, onHudUpdate]);
 
   const handleExit = () => {
     setEndState(null);
@@ -117,6 +123,7 @@ export const GameScene = (props: GameSceneProps) => {
   return (
     <div className="relative w-full h-full" style={{ backgroundColor: bgColor }}>
       <div ref={containerRef} className="w-full h-full" />
+      <GameHud players={hudPlayers} />
 
       <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-6">
         <span className="text-neutral-500">A / D or Arrow Keys to move</span>
