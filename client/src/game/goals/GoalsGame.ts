@@ -23,6 +23,7 @@ import {
   getGoalsSlotAngles,
   clampSpeed,
   BALL_RADIUS,
+  angleDiff,
 } from "shared";
 import type { GoalsBallState } from "shared";
 import type { HudPlayer } from "../GameHud";
@@ -206,18 +207,18 @@ export class GoalsGame {
       if (nearestBall && nearestDist < GOALS_ARENA_RADIUS * 0.6) {
         const dx = nearestBall.x - goalX;
         const dy = nearestBall.y - goalY;
-        const ballAngle = Math.atan2(dy, dx);
-        let target = player.paddleAngle;
-        target += (ballAngle - target) * 0.15;
-        player.paddleAngle += (target - player.paddleAngle) * GOALS_ORBIT_ACCEL;
+        const targetAngle = Math.atan2(dy, dx);
+        const diff = angleDiff(targetAngle, player.paddleAngle);
+        const step = Math.sign(diff) * Math.min(Math.abs(diff), GOALS_ORBIT_SPEED);
+        player.paddleAngle += step * GOALS_ORBIT_ACCEL;
       } else {
         player.ai.roamTimer--;
         if (player.ai.roamTimer <= 0) {
           player.ai.roamTarget = player.goalAngle + (Math.random() - 0.5) * 1.0;
           player.ai.roamTimer = 40 + Math.floor(Math.random() * 80);
         }
-        const target = player.ai.roamTarget;
-        player.paddleAngle += (target - player.paddleAngle) * 0.05;
+        const diff = angleDiff(player.ai.roamTarget, player.paddleAngle);
+        player.paddleAngle += diff * 0.05;
       }
 
       player.paddle.paddleAngle = player.paddleAngle;

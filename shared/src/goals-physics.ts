@@ -1,7 +1,7 @@
 import type { Vector2 } from "./types.js";
 import { BALL_RADIUS } from "./constants.js";
 
-function angleDiff(a: number, b: number): number {
+export function angleDiff(a: number, b: number): number {
   let d = a - b;
   while (d > Math.PI) d -= 2 * Math.PI;
   while (d < -Math.PI) d += 2 * Math.PI;

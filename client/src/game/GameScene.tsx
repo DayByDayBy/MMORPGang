@@ -38,6 +38,7 @@ export const GameScene = (props: GameSceneProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [endState, setEndState] = useState<EndState>(null);
   const [hudPlayers, setHudPlayers] = useState<HudPlayer[]>([]);
+  const [restartKey, setRestartKey] = useState(0);
 
   const onHudUpdate = useCallback((players: HudPlayer[]) => {
     setHudPlayers(players);
@@ -115,7 +116,12 @@ export const GameScene = (props: GameSceneProps) => {
         app.destroy(true, { children: true });
       }
     };
-  }, [mode, gameMode, playerCount, playerName, playerEmoji, room, onHudUpdate]);
+  }, [mode, gameMode, playerCount, playerName, playerEmoji, room, onHudUpdate, restartKey]);
+
+  const handleRestart = () => {
+    setEndState(null);
+    setRestartKey((k) => k + 1);
+  };
 
   const handleExit = () => {
     setEndState(null);
@@ -155,9 +161,16 @@ export const GameScene = (props: GameSceneProps) => {
           <div className="p-10 text-center flex flex-col items-center gap-4">
             <h2 className="m-0 text-white text-2xl">Game Over!</h2>
             <p className="m-0 text-sky-300">You lost!</p>
-            <Button variant="ghost" size="sm" onClick={handleExit}>
-              Back to Lobby
-            </Button>
+            <div className="flex gap-3 mt-2">
+              {mode === "local" && (
+                <Button variant="accent" size="sm" onClick={handleRestart}>
+                  Restart
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={handleExit}>
+                Back to Lobby
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -167,9 +180,16 @@ export const GameScene = (props: GameSceneProps) => {
           <div className="p-10 text-center flex flex-col items-center gap-4">
             <h2 className="m-0 text-white text-2xl">Game Over!</h2>
             <p className="m-0 text-sky-300">{endState.name} wins!</p>
-            <Button variant="ghost" size="sm" onClick={handleExit}>
-              Back to Lobby
-            </Button>
+            <div className="flex gap-3 mt-2">
+              {mode === "local" && (
+                <Button variant="accent" size="sm" onClick={handleRestart}>
+                  Restart
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={handleExit}>
+                Back to Lobby
+              </Button>
+            </div>
           </div>
         </div>
       )}
