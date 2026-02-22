@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MIN_PLAYERS, MAX_PLAYERS } from "shared";
+import { MIN_PLAYERS, MAX_PLAYERS, LOCAL_PLAYER_EMOJI } from "shared";
 import type { GameMode } from "shared";
 import { useGame } from "@/context/GameContext";
 import { Button } from "@/components/Button";
@@ -14,7 +14,7 @@ export const LocalPage = () => {
 
   const handleStart = (e: React.FormEvent) => {
     e.preventDefault();
-    setLocalState({ playerName: "You", playerCount, gameMode: mode });
+    setLocalState({ playerName: "You", playerEmoji: LOCAL_PLAYER_EMOJI, playerCount, gameMode: mode });
     navigate("/local/play");
   };
 

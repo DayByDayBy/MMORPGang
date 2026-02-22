@@ -1,5 +1,5 @@
 import { Application, Container, Ticker } from "pixi.js";
-import { DEFAULT_LIVES, CLASSIC_ARENA_RADIUS, CLASSIC_PADDLE_SPEED, ballNearSegment, ballPassedEdge } from "shared";
+import { DEFAULT_LIVES, CLASSIC_ARENA_RADIUS, CLASSIC_PADDLE_SPEED, BOT_EMOJI, ballNearSegment, ballPassedEdge } from "shared";
 import type { Edge } from "shared";
 import type { HudPlayer } from "../GameHud";
 import { ClassicArena } from "./ClassicArena";
@@ -20,6 +20,7 @@ interface PlayerState {
   eliminated: boolean;
   edgeIndex: number;
   name: string;
+  emoji: string;
   ai?: AIState;
 }
 
@@ -44,7 +45,7 @@ export class ClassicGame {
     this.onHudUpdate = onHudUpdate;
   }
 
-  async init(playerCount: number, playerName: string, onGameOver: (winnerName: string | null) => void) {
+  async init(playerCount: number, playerName: string, playerEmoji: string, onGameOver: (winnerName: string | null) => void) {
     this.onGameOver = onGameOver;
     this.app.stage.addChild(this.world);
 
@@ -76,6 +77,7 @@ export class ClassicGame {
         eliminated: false,
         edgeIndex: edgeIdx,
         name: i === 0 ? playerName : `Bot ${i}`,
+        emoji: i === 0 ? playerEmoji : BOT_EMOJI,
         ai: i === 0 ? undefined : {
           aggressiveness: 0.3 + Math.random() * 0.7,
           speed: CLASSIC_PADDLE_SPEED,
@@ -272,6 +274,7 @@ export class ClassicGame {
   private emitHud() {
     this.onHudUpdate(this.players.map((p, i) => ({
       name: p.name,
+      emoji: p.emoji,
       lives: p.lives,
       eliminated: p.eliminated,
       colorIndex: i,

@@ -141,7 +141,7 @@ export const AudioRecorder = ({ onRecorded }: AudioRecorderProps) => {
         </div>
       )}
 
-      <p className="mt-2 mb-0 text-[11px] text-text-dim">
+      <p className="mt-2 mb-0 text-[11px] text-text-muted">
         {state === "idle" && "Record a short sound effect for your paddle"}
         {state === "recording" && "Recording... speak or make a noise!"}
         {state === "done" && "This plays when the ball hits your paddle"}

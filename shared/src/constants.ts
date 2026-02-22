@@ -8,6 +8,10 @@ export const BALL_RADIUS = 8;
 export const BALL_SPEED = 5;
 export const MAX_CLIP_DURATION = 1.5;
 
+export const DEFAULT_EMOJI = "♥";
+export const LOCAL_PLAYER_EMOJI = "🧑";
+export const BOT_EMOJI = "🤖";
+
 export const PLAYER_COLORS = [
   "#ef4444", // red-500
   "#3b82f6", // blue-500

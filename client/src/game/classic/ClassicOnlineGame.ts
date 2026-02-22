@@ -12,6 +12,7 @@ import { AudioManager } from "../AudioManager";
 interface RemotePlayer {
   sessionId: string;
   name: string;
+  emoji: string;
   colorIndex: number;
   edgeIndex: number;
   lives: number;
@@ -118,6 +119,7 @@ export class ClassicOnlineGame {
     this.players.set(sessionId, {
       sessionId,
       name: p.name,
+      emoji: p.emoji,
       colorIndex: p.colorIndex,
       edgeIndex: p.edgeIndex,
       lives: p.lives,
@@ -197,6 +199,7 @@ export class ClassicOnlineGame {
     for (const [, rp] of this.players) {
       players.push({
         name: rp.name,
+        emoji: rp.emoji,
         lives: rp.lives,
         eliminated: rp.eliminated,
         colorIndex: rp.colorIndex,

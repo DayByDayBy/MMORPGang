@@ -15,6 +15,7 @@ interface LocalGameProps {
   gameMode: GameMode;
   playerCount: number;
   playerName: string;
+  playerEmoji: string;
   onExit: () => void;
 }
 
@@ -45,6 +46,7 @@ export const GameScene = (props: GameSceneProps) => {
   const { mode, gameMode, onExit } = props;
   const playerCount = mode === "local" ? props.playerCount : 0;
   const playerName = mode === "local" ? props.playerName : "";
+  const playerEmoji = mode === "local" ? props.playerEmoji : "";
   const room = mode === "online" ? props.room : null;
 
   const bgColor = (() => {
@@ -80,12 +82,12 @@ export const GameScene = (props: GameSceneProps) => {
 
       if (mode === "local" && gameMode === "classic") {
         game = new ClassicGame(app, onHudUpdate);
-        await game.init(playerCount, playerName, (winnerName) => {
+        await game.init(playerCount, playerName, playerEmoji, (winnerName) => {
           setEndState(winnerName ? { kind: "win", name: winnerName } : { kind: "loss" });
         });
       } else if (mode === "local" && gameMode === "goals") {
         game = new GoalsGame(app, onHudUpdate);
-        await game.init(playerCount, playerName, (winnerName) => {
+        await game.init(playerCount, playerName, playerEmoji, (winnerName) => {
           setEndState(winnerName ? { kind: "win", name: winnerName } : { kind: "loss" });
         });
       } else if (mode === "online" && gameMode === "classic") {
@@ -113,7 +115,7 @@ export const GameScene = (props: GameSceneProps) => {
         app.destroy(true, { children: true });
       }
     };
-  }, [mode, gameMode, playerCount, playerName, room, onHudUpdate]);
+  }, [mode, gameMode, playerCount, playerName, playerEmoji, room, onHudUpdate]);
 
   const handleExit = () => {
     setEndState(null);

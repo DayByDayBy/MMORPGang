@@ -4,6 +4,7 @@ import type { Room } from "@colyseus/sdk";
 
 interface LocalGameState {
   playerName: string;
+  playerEmoji: string;
   playerCount: number;
   gameMode: GameMode;
 }

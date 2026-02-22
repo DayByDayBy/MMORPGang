@@ -1,7 +1,7 @@
 import { Application, Container, Ticker } from "pixi.js";
 import {
-  PLAYER_COLORS,
   BALL_SPEED,
+  BOT_EMOJI,
   GOALS_ARENA_RADIUS,
   GOALS_GOAL_RING_RADIUS,
   GOALS_GOAL_RADIUS,
@@ -47,6 +47,7 @@ interface PlayerState {
   lives: number;
   eliminated: boolean;
   name: string;
+  emoji: string;
   ai?: AIState;
 }
 
@@ -70,7 +71,7 @@ export class GoalsGame {
     this.onHudUpdate = onHudUpdate;
   }
 
-  async init(playerCount: number, playerName: string, onGameOver: (winnerName: string | null) => void) {
+  async init(playerCount: number, playerName: string, playerEmoji: string, onGameOver: (winnerName: string | null) => void) {
     this.onGameOver = onGameOver;
     this.app.stage.addChild(this.world);
 
@@ -107,6 +108,7 @@ export class GoalsGame {
         lives: GOALS_LIVES,
         eliminated: false,
         name: i === 0 ? playerName : `Bot ${i}`,
+        emoji: i === 0 ? playerEmoji : BOT_EMOJI,
         ai: i === 0 ? undefined : {
           speed: GOALS_ORBIT_SPEED,
           roamTarget: goalAngle + Math.PI,
@@ -353,6 +355,7 @@ export class GoalsGame {
   private emitHud() {
     this.onHudUpdate(this.players.map((p, i) => ({
       name: p.name,
+      emoji: p.emoji,
       lives: p.lives,
       eliminated: p.eliminated,
       colorIndex: i,

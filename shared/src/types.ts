@@ -26,6 +26,7 @@ export interface BallState {
 export interface BasePlayerState {
   sessionId: string;
   name: string;
+  emoji: string;
   lives: number;
   eliminated: boolean;
   ready: boolean;

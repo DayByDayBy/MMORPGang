@@ -2,6 +2,7 @@ import { PLAYER_COLORS } from "shared";
 
 export interface HudPlayer {
   name: string;
+  emoji: string;
   lives: number;
   eliminated: boolean;
   colorIndex: number;
@@ -26,7 +27,7 @@ export const GameHud = ({ players }: GameHudProps) => {
             {p.eliminated ? (
               <span className="opacity-50">OUT</span>
             ) : (
-              <span>{"🦆".repeat(p.lives)}</span>
+              <span>{p.emoji.repeat(p.lives)}</span>
             )}
           </div>
         );
