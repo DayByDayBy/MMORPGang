@@ -128,7 +128,7 @@ export const GameScene = (props: GameSceneProps) => {
       {endState?.kind === "eliminated" && (
         <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-[100]">
           <div className="p-10 text-center flex flex-col items-center gap-4">
-            <h2 className="m-0 text-white">You were eliminated!</h2>
+            <h2 className="m-0 text-white text-2xl">You were eliminated!</h2>
             <div className="flex gap-3 mt-2">
               <Button variant="accent" size="sm" onClick={() => setEndState(null)}>
                 Spectate
@@ -144,7 +144,7 @@ export const GameScene = (props: GameSceneProps) => {
       {endState?.kind === "loss" && (
         <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-[100]">
           <div className="p-10 text-center flex flex-col items-center gap-4">
-            <h2 className="m-0 text-white">Game Over!</h2>
+            <h2 className="m-0 text-white text-2xl">Game Over!</h2>
             <p className="m-0 text-sky-300">You lost!</p>
             <Button variant="ghost" size="sm" onClick={handleExit}>
               Back to Lobby
@@ -156,7 +156,7 @@ export const GameScene = (props: GameSceneProps) => {
       {endState?.kind === "win" && (
         <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-[100]">
           <div className="p-10 text-center flex flex-col items-center gap-4">
-            <h2 className="m-0 text-white">Game Over!</h2>
+            <h2 className="m-0 text-white text-2xl">Game Over!</h2>
             <p className="m-0 text-sky-300">{endState.name} wins!</p>
             <Button variant="ghost" size="sm" onClick={handleExit}>
               Back to Lobby

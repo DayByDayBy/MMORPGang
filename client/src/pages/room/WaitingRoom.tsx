@@ -86,7 +86,7 @@ export const WaitingRoom = ({ room, onGameStart, onLeave }: WaitingRoomProps) =>
       style={{ backgroundColor: bgColor }}
     >
       <div className="p-10 w-[420px] max-w-[90vw] text-center">
-        <h2 className="m-0 mb-2">Waiting for Players</h2>
+        <h2 className="m-0 mb-2 text-2xl">Waiting for Players</h2>
         <p className="m-0 text-neutral-400">
           Room:{" "}
           <code className="bg-white/8 px-2.5 py-0.5 text-lg text-accent select-all">

@@ -48,7 +48,7 @@ export const RoomPage = () => {
     return (
       <div className="flex items-center justify-center w-full h-full">
         <div className="p-10 w-[400px] max-w-[90vw] text-center">
-          <h2 className="m-0 mb-2">Can't Join Room</h2>
+          <h2 className="m-0 mb-2 text-2xl">Can't Join Room</h2>
           <p className="text-red-500 text-sm mb-6">{error}</p>
           <Button variant="link" className="text-sm" onClick={() => navigate("/")}>
             Back to Home

@@ -32,7 +32,7 @@ export const HostPage = () => {
   return (
     <div className="flex items-center justify-center w-full h-full">
       <div className="p-10 w-[400px] max-w-[90vw] text-center">
-        <h2 className="m-0 mb-1">New Game</h2>
+        <h2 className="m-0 mb-1 text-2xl">New Game</h2>
         <p className="text-text-muted text-sm mb-6">Pick a mode and create a room</p>
 
         <div className="flex flex-col gap-5">
