@@ -12,6 +12,8 @@ import {
   GOALS_ORBIT_SPEED,
   GOALS_ORBIT_ACCEL,
   GOALS_LIVES,
+  GOALS_BALL_INITIAL_SPEED_MULTIPLIER,
+  GOALS_BALL_ACCELERATION,
 } from "shared";
 import type { GoalsSimPlayer } from "shared";
 
@@ -21,6 +23,9 @@ export class GoalsGameRoom extends BaseGameRoom {
   protected get typedState() { return this.state; }
 
   private inputs = new Map<string, { left: boolean; right: boolean }>();
+  private ballCurrentSpeed = BALL_SPEED;
+  private ballAcceleration = GOALS_BALL_ACCELERATION;
+  private ballMaxSpeed = BALL_SPEED;
 
   protected getPlayers() {
     return this.state.players;
@@ -74,6 +79,16 @@ export class GoalsGameRoom extends BaseGameRoom {
     if (this.state.phase !== "playing") return;
 
     this.applyInputs();
+
+    // Apply ball acceleration
+    if (this.ballCurrentSpeed < this.ballMaxSpeed) {
+      this.ballCurrentSpeed = Math.min(this.ballCurrentSpeed + this.ballAcceleration, this.ballMaxSpeed);
+      const speed = Math.sqrt(this.ballVx ** 2 + this.ballVy ** 2);
+      if (speed > 0) {
+        this.ballVx = (this.ballVx / speed) * this.ballCurrentSpeed;
+        this.ballVy = (this.ballVy / speed) * this.ballCurrentSpeed;
+      }
+    }
 
     const simPlayers: GoalsSimPlayer[] = [];
     const sessionIds: string[] = [];
@@ -140,6 +155,9 @@ export class GoalsGameRoom extends BaseGameRoom {
   private resetBall() {
     this.resetBallToCenter();
 
+    // Reset ball acceleration
+    this.ballCurrentSpeed = BALL_SPEED * GOALS_BALL_INITIAL_SPEED_MULTIPLIER;
+
     const alivePlayers: GoalsPlayerSchema[] = [];
     this.state.players.forEach((p) => {
       if (!p.eliminated) alivePlayers.push(p);
@@ -150,8 +168,8 @@ export class GoalsGameRoom extends BaseGameRoom {
       const goalX = Math.cos(target.goalAngle) * GOALS_GOAL_RING_RADIUS;
       const goalY = Math.sin(target.goalAngle) * GOALS_GOAL_RING_RADIUS;
       const dist = Math.sqrt(goalX * goalX + goalY * goalY) || 1;
-      this.ballVx = (goalX / dist) * BALL_SPEED;
-      this.ballVy = (goalY / dist) * BALL_SPEED;
+      this.ballVx = (goalX / dist) * this.ballCurrentSpeed;
+      this.ballVy = (goalY / dist) * this.ballCurrentSpeed;
     } else {
       this.launchBallRandom();
     }
