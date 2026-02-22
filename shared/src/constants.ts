@@ -51,7 +51,7 @@ export const CLASSIC_MAX_BALL_SPEED = 14;
 
 // --- Goals mode constants ---
 
-export const GOALS_ARENA_RADIUS = 360;
+export const GOALS_ARENA_RADIUS = 600;
 export const GOALS_GOAL_RING_RADIUS = 259;
 export const GOALS_GOAL_RADIUS = 18;
 export const GOALS_ORBIT_RADIUS = 54;
