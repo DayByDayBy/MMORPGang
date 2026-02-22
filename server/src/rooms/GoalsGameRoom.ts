@@ -8,6 +8,9 @@ import {
   GOALS_GOAL_RING_RADIUS,
   GOALS_GOAL_RADIUS,
   GOALS_ORBIT_RADIUS,
+  GOALS_ORBIT_RADIUS_MIN,
+  GOALS_ORBIT_RADIUS_MAX,
+  GOALS_ORBIT_RADIUS_SPEED,
   GOALS_PADDLE_ARC,
   GOALS_ORBIT_SPEED,
   GOALS_ORBIT_ACCEL,
@@ -22,7 +25,7 @@ export class GoalsGameRoom extends BaseGameRoom {
 
   protected get typedState() { return this.state; }
 
-  private inputs = new Map<string, { left: boolean; right: boolean }>();
+  private inputs = new Map<string, { left: boolean; right: boolean; up: boolean; down: boolean }>();
   private ballCurrentSpeed = BALL_SPEED;
   private ballAcceleration = GOALS_BALL_ACCELERATION;
   private ballMaxSpeed = BALL_SPEED;
@@ -40,13 +43,18 @@ export class GoalsGameRoom extends BaseGameRoom {
     return player;
   }
 
-  protected handlePaddleInput(_player: GoalsPlayerSchema, data: { left?: boolean; right?: boolean }) {
+  protected handlePaddleInput(_player: GoalsPlayerSchema, data: { left?: boolean; right?: boolean; up?: boolean; down?: boolean }) {
     if (
       typeof data !== "object" || data === null ||
       typeof data.left !== "boolean" ||
       typeof data.right !== "boolean"
     ) return;
-    this.inputs.set(_player.sessionId, { left: data.left, right: data.right });
+    this.inputs.set(_player.sessionId, {
+      left: data.left,
+      right: data.right,
+      up: data.up ?? false,
+      down: data.down ?? false,
+    });
   }
 
   onCreate(options: any) {
@@ -66,6 +74,7 @@ export class GoalsGameRoom extends BaseGameRoom {
     this.state.players.forEach((player) => {
       player.goalAngle = slots[idx];
       player.paddleAngle = slots[idx] + Math.PI;
+      player.orbitRadius = GOALS_ORBIT_RADIUS;
       idx++;
     });
 
@@ -97,6 +106,7 @@ export class GoalsGameRoom extends BaseGameRoom {
         goalAngle: player.goalAngle,
         paddleAngle: player.paddleAngle,
         paddleAngleVelocity: player.paddleAngleVelocity,
+        orbitRadius: player.orbitRadius,
         eliminated: player.eliminated,
       });
       sessionIds.push(sid);
@@ -154,6 +164,14 @@ export class GoalsGameRoom extends BaseGameRoom {
       player.paddleAngle += (target - player.paddleAngle) * GOALS_ORBIT_ACCEL;
 
       player.paddleAngleVelocity = player.paddleAngle - prevAngle;
+
+      // Handle orbit radius control
+      if (input.up) {
+        player.orbitRadius = Math.min(player.orbitRadius + GOALS_ORBIT_RADIUS_SPEED, GOALS_ORBIT_RADIUS_MAX);
+      }
+      if (input.down) {
+        player.orbitRadius = Math.max(player.orbitRadius - GOALS_ORBIT_RADIUS_SPEED, GOALS_ORBIT_RADIUS_MIN);
+      }
     });
   }
 

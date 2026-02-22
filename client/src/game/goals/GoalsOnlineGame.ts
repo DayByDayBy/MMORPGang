@@ -28,6 +28,7 @@ interface RemotePlayer {
   colorIndex: number;
   goalAngle: number;
   paddleAngle: number;
+  orbitRadius: number;
   lives: number;
   eliminated: boolean;
   paddle: GoalsPaddle;
@@ -48,7 +49,7 @@ export class GoalsOnlineGame {
   private destroyed = false;
   private audio = new AudioManager();
   private playerSounds = new Map<string, AudioBuffer>();
-  private localInput = { left: false, right: false };
+  private localInput = { left: false, right: false, up: false, down: false };
   private onHudUpdate: (players: HudPlayer[]) => void;
 
   private predictedBall: BallState = { x: 0, y: 0, vx: 0, vy: 0 };
@@ -130,9 +131,9 @@ export class GoalsOnlineGame {
   private addPlayer(sessionId: string, p: GoalsPlayerState) {
     const goalRingRadius = (this.room.state as any).goalRingRadius || GOALS_GOAL_RING_RADIUS;
     const goalRadius = (this.room.state as any).goalRadius || GOALS_GOAL_RADIUS;
-    const orbitRadius = (this.room.state as any).orbitRadius || GOALS_ORBIT_RADIUS;
+    const playerOrbitRadius = (p as any).orbitRadius || GOALS_ORBIT_RADIUS;
 
-    const paddle = new GoalsPaddle(p.colorIndex, p.paddleAngle, orbitRadius);
+    const paddle = new GoalsPaddle(p.colorIndex, p.paddleAngle, playerOrbitRadius);
     this.world.addChild(paddle);
 
     const goal = new GoalsGoal(goalRadius);
@@ -152,6 +153,7 @@ export class GoalsOnlineGame {
       colorIndex: p.colorIndex,
       goalAngle: p.goalAngle,
       paddleAngle: p.paddleAngle,
+      orbitRadius: playerOrbitRadius,
       lives: p.lives,
       eliminated: p.eliminated,
       paddle,
@@ -187,9 +189,14 @@ export class GoalsOnlineGame {
       const rp = this.players.get(sessionId);
       if (!rp) return;
 
+      rp.goalAngle = p.goalAngle;
+      rp.paddleAngle = p.paddleAngle;
+      rp.orbitRadius = (p as any).orbitRadius || GOALS_ORBIT_RADIUS;
       rp.lives = p.lives;
       rp.eliminated = p.eliminated;
-      rp.paddleAngle = p.paddleAngle;
+
+      // Update paddle orbit radius and angle
+      rp.paddle.orbitRadius = rp.orbitRadius;
       rp.paddle.paddleAngle = p.paddleAngle;
 
       const goalX = Math.cos(rp.goalAngle) * goalRingRadius;
@@ -232,10 +239,14 @@ export class GoalsOnlineGame {
   private updateInput() {
     const left = this.keys.has("a") || this.keys.has("arrowleft");
     const right = this.keys.has("d") || this.keys.has("arrowright");
-    if (left !== this.localInput.left || right !== this.localInput.right) {
+    const up = this.keys.has("w") || this.keys.has("arrowup");
+    const down = this.keys.has("s") || this.keys.has("arrowdown");
+    if (left !== this.localInput.left || right !== this.localInput.right || up !== this.localInput.up || down !== this.localInput.down) {
       this.localInput.left = left;
       this.localInput.right = right;
-      this.room.send("paddle_input", { left, right });
+      this.localInput.up = up;
+      this.localInput.down = down;
+      this.room.send("paddle_input", { left, right, up, down });
     }
   }
 
@@ -275,7 +286,8 @@ export class GoalsOnlineGame {
         const dy = b.y - gy;
         const d = Math.sqrt(dx * dx + dy * dy);
         const threshold = BALL_RADIUS * 2;
-        if (d < orbitRadius - threshold || d > orbitRadius + threshold) continue;
+        const playerOrbitRadius = rp.orbitRadius;
+        if (d < playerOrbitRadius - threshold || d > playerOrbitRadius + threshold) continue;
         const bAngle = Math.atan2(dy, dx);
         if (Math.abs(angleDiff(bAngle, rp.paddleAngle)) > GOALS_PADDLE_ARC / 2) continue;
         const len = d || 1;
@@ -285,7 +297,7 @@ export class GoalsOnlineGame {
         const dot = b.vx * pnx + b.vy * pny;
         b.vx -= 2 * dot * pnx;
         b.vy -= 2 * dot * pny;
-        const push = orbitRadius + BALL_RADIUS + 1;
+        const push = playerOrbitRadius + BALL_RADIUS + 1;
         b.x = gx + pnx * push;
         b.y = gy + pny * push;
         break;

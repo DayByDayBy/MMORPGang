@@ -15,6 +15,7 @@ export interface GoalsSimPlayer {
   goalAngle: number;
   paddleAngle: number;
   paddleAngleVelocity?: number;
+  orbitRadius?: number;
   eliminated: boolean;
 }
 
@@ -64,10 +65,11 @@ export function goalsPhysicsStep(state: GoalsSimState): GoalsSimResult {
 
     const goalX = Math.cos(player.goalAngle) * goalRingRadius;
     const goalY = Math.sin(player.goalAngle) * goalRingRadius;
+    const playerOrbitRadius = player.orbitRadius ?? orbitRadius;
 
     const saved = checkGoalsPaddleCollision(
       ball, player.paddleAngle, paddleArc,
-      goalX, goalY, orbitRadius, BALL_RADIUS,
+      goalX, goalY, playerOrbitRadius, BALL_RADIUS,
     );
 
     if (saved) {
@@ -76,7 +78,7 @@ export function goalsPhysicsStep(state: GoalsSimState): GoalsSimResult {
         const goalDist = Math.sqrt(goalX * goalX + goalY * goalY) || 1;
         const tangentX = -(goalY / goalDist);
         const tangentY = (goalX / goalDist);
-        const tangentSpeed = player.paddleAngleVelocity * orbitRadius;
+        const tangentSpeed = player.paddleAngleVelocity * playerOrbitRadius;
 
         // Apply spin influence (0.6 multiplier)
         ball.vx += tangentX * tangentSpeed * 0.6;

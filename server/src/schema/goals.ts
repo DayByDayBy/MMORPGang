@@ -7,6 +7,7 @@ export class GoalsPlayerSchema extends BasePlayerSchema implements GoalsPlayerSt
   @type("float32") goalAngle: number = 0;
   @type("float32") paddleAngle: number = 0;
   @type("float32") paddleAngleVelocity: number = 0;
+  @type("float32") orbitRadius: number = 54;
 }
 
 export class GoalsGameRoomState extends BaseGameRoomState implements GoalsGameState {
