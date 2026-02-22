@@ -265,6 +265,8 @@ export class GoalsGame {
 
             this.checkWinCondition();
           }
+          
+          this.removeBall(ball);
           this.launchBall();
           break;
         }
@@ -296,6 +298,14 @@ export class GoalsGame {
       player.goal.render(goalX, goalY, player.lives > 0);
       player.paddle.render(goalX, goalY, i === 0);
     }
+  }
+
+  private removeBall(ball: Ball) {
+    const ballIndex = this.balls.indexOf(ball);
+    if (ballIndex > -1) {
+      this.balls.splice(ballIndex, 1);
+    }
+    this.world.removeChild(ball);
   }
 
   private launchBall() {
