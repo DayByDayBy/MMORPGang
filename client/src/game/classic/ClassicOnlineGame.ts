@@ -16,7 +16,7 @@ import { Ball } from "../Ball";
 import { AudioManager } from "../AudioManager";
 
 const SNAP_DIST_SQ = 400;
-const CORRECTION_RATE = 8;
+const CORRECTION_DECAY = 6;
 
 interface RemotePlayer {
   sessionId: string;
@@ -48,7 +48,8 @@ export class ClassicOnlineGame {
 
   private edges: Edge[] = [];
   private predictedBall: BallState = { x: 0, y: 0, vx: 0, vy: 0 };
-  private serverBall: BallState = { x: 0, y: 0, vx: 0, vy: 0 };
+  private correctionX = 0;
+  private correctionY = 0;
 
   constructor(app: Application, room: Room<ClassicGameState>, onHudUpdate: (players: HudPlayer[]) => void) {
     this.app = app;
@@ -147,23 +148,21 @@ export class ClassicOnlineGame {
   private syncState() {
     const state = this.room.state;
 
-    this.serverBall = {
-      x: state.ball.x,
-      y: state.ball.y,
-      vx: state.ball.vx,
-      vy: state.ball.vy,
-    };
+    const errX = state.ball.x - this.predictedBall.x;
+    const errY = state.ball.y - this.predictedBall.y;
+    const distSq = errX * errX + errY * errY;
 
-    const dx = this.serverBall.x - this.predictedBall.x;
-    const dy = this.serverBall.y - this.predictedBall.y;
-    const distSq = dx * dx + dy * dy;
-
-    this.predictedBall.vx = this.serverBall.vx;
-    this.predictedBall.vy = this.serverBall.vy;
+    this.predictedBall.vx = state.ball.vx;
+    this.predictedBall.vy = state.ball.vy;
 
     if (distSq > SNAP_DIST_SQ) {
-      this.predictedBall.x = this.serverBall.x;
-      this.predictedBall.y = this.serverBall.y;
+      this.predictedBall.x = state.ball.x;
+      this.predictedBall.y = state.ball.y;
+      this.correctionX = 0;
+      this.correctionY = 0;
+    } else {
+      this.correctionX = errX;
+      this.correctionY = errY;
     }
 
     state.players.forEach((p: ClassicPlayerState, sessionId: string) => {
@@ -211,17 +210,12 @@ export class ClassicOnlineGame {
       this.predictedBall = result.ball;
     }
 
-    const corrDx = this.serverBall.x - this.predictedBall.x;
-    const corrDy = this.serverBall.y - this.predictedBall.y;
-    const corrDistSq = corrDx * corrDx + corrDy * corrDy;
-    if (corrDistSq > 1 && corrDistSq <= SNAP_DIST_SQ) {
-      const t = 1 - Math.exp(-CORRECTION_RATE * dt);
-      this.predictedBall.x += corrDx * t;
-      this.predictedBall.y += corrDy * t;
-    }
+    const decay = Math.exp(-CORRECTION_DECAY * dt);
+    this.correctionX *= decay;
+    this.correctionY *= decay;
 
-    this.ball.x = this.predictedBall.x;
-    this.ball.y = this.predictedBall.y;
+    this.ball.x = this.predictedBall.x + this.correctionX;
+    this.ball.y = this.predictedBall.y + this.correctionY;
 
     for (const [sessionId, rp] of this.players) {
       if (sessionId !== this.room.sessionId) {
