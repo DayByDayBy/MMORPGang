@@ -14,6 +14,7 @@ import {
 export interface GoalsSimPlayer {
   goalAngle: number;
   paddleAngle: number;
+  paddleAngleVelocity?: number;
   eliminated: boolean;
 }
 
@@ -70,6 +71,23 @@ export function goalsPhysicsStep(state: GoalsSimState): GoalsSimResult {
     );
 
     if (saved) {
+      // Apply paddle spin if velocity is tracked
+      if (player.paddleAngleVelocity !== undefined) {
+        const goalDist = Math.sqrt(goalX * goalX + goalY * goalY) || 1;
+        const tangentX = -(goalY / goalDist);
+        const tangentY = (goalX / goalDist);
+        const tangentSpeed = player.paddleAngleVelocity * orbitRadius;
+
+        // Apply spin influence (0.6 multiplier)
+        ball.vx += tangentX * tangentSpeed * 0.6;
+        ball.vy += tangentY * tangentSpeed * 0.6;
+
+        // Clamp to max speed
+        const clamped = clampSpeed(ball.vx, ball.vy, GOALS_MAX_BALL_SPEED);
+        ball.vx = clamped.x;
+        ball.vy = clamped.y;
+      }
+
       events.push({ type: "paddle_hit", playerIndex: i });
     } else if (checkGoalsGoalCollision(ball, goalX, goalY, goalRadius, orbitRadius, BALL_RADIUS)) {
       events.push({ type: "scored", playerIndex: i });

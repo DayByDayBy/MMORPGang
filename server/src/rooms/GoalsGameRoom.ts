@@ -96,6 +96,7 @@ export class GoalsGameRoom extends BaseGameRoom {
       simPlayers.push({
         goalAngle: player.goalAngle,
         paddleAngle: player.paddleAngle,
+        paddleAngleVelocity: player.paddleAngleVelocity,
         eliminated: player.eliminated,
       });
       sessionIds.push(sid);
@@ -145,10 +146,14 @@ export class GoalsGameRoom extends BaseGameRoom {
       const input = this.inputs.get(player.sessionId);
       if (!input) return;
 
+      const prevAngle = player.paddleAngle;
+
       let target = player.paddleAngle;
       if (input.left) target -= GOALS_ORBIT_SPEED;
       if (input.right) target += GOALS_ORBIT_SPEED;
       player.paddleAngle += (target - player.paddleAngle) * GOALS_ORBIT_ACCEL;
+
+      player.paddleAngleVelocity = player.paddleAngle - prevAngle;
     });
   }
 

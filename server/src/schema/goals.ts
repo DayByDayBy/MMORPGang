@@ -6,6 +6,7 @@ export class GoalsPlayerSchema extends BasePlayerSchema implements GoalsPlayerSt
   @type("uint8") colorIndex: number = 0;
   @type("float32") goalAngle: number = 0;
   @type("float32") paddleAngle: number = 0;
+  @type("float32") paddleAngleVelocity: number = 0;
 }
 
 export class GoalsGameRoomState extends BaseGameRoomState implements GoalsGameState {
