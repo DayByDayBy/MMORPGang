@@ -59,6 +59,6 @@ export const GOALS_ORBIT_SPEED = 0.5;
 export const GOALS_ORBIT_ACCEL = 0.18;
 export const GOALS_MAX_BALL_SPEED = 10;
 export const GOALS_LIVES = 5;
-export const GOALS_BALL_SPAWN_INTERVAL = 3600;
+export const GOALS_BALL_SPAWN_INTERVAL = 7200;
 export const GOALS_BALL_INITIAL_SPEED_MULTIPLIER = 0.5;
 export const GOALS_BALL_ACCELERATION = 0.075;

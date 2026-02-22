@@ -102,14 +102,14 @@ export class GoalsGame {
         paddle,
         goal,
         goalAngle,
-        paddleAngle: goalAngle,
+        paddleAngle: goalAngle + Math.PI,
         orbitRadius: GOALS_ORBIT_RADIUS,
         lives: GOALS_LIVES,
         eliminated: false,
         name: i === 0 ? playerName : `Bot ${i}`,
         ai: i === 0 ? undefined : {
           speed: GOALS_ORBIT_SPEED,
-          roamTarget: goalAngle,
+          roamTarget: goalAngle + Math.PI,
           roamTimer: 0,
         },
       };
