@@ -60,7 +60,7 @@ export class GoalsGameRoom extends BaseGameRoom {
     let idx = 0;
     this.state.players.forEach((player) => {
       player.goalAngle = slots[idx];
-      player.paddleAngle = slots[idx];
+      player.paddleAngle = slots[idx] + Math.PI;
       idx++;
     });
 
