@@ -5,6 +5,7 @@ import type { Room } from "@colyseus/sdk";
 import { useGame } from "@/context/GameContext";
 import { createRoom } from "@/network/client";
 import { Button } from "@/components/Button";
+import { GameModeToggle } from "@/components/GameModeToggle";
 
 export const HostPage = () => {
   const navigate = useNavigate();
@@ -35,31 +36,7 @@ export const HostPage = () => {
         <p className="text-text-muted text-sm mb-6">Pick a mode and create a room</p>
 
         <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2 text-neutral-400 text-left">
-            Game Mode
-            <div className="flex">
-              <button
-                className={`flex-1 px-4 py-2 border border-border text-sm cursor-pointer ${
-                  mode === "classic"
-                    ? "bg-white/15 text-white border-white/30"
-                    : "bg-surface-elevated text-text-muted"
-                }`}
-                onClick={() => setMode("classic")}
-              >
-                Classic
-              </button>
-              <button
-                className={`flex-1 px-4 py-2 border border-border text-sm cursor-pointer ${
-                  mode === "goals"
-                    ? "bg-white/15 text-white border-white/30"
-                    : "bg-surface-elevated text-text-muted"
-                }`}
-                onClick={() => setMode("goals")}
-              >
-                Goals
-              </button>
-            </div>
-          </div>
+          <GameModeToggle value={mode} onChange={setMode} />
 
           <Button variant="success" size="lg" disabled={creating} onClick={handleCreate}>
             {creating ? "Creating..." : "Create Room"}

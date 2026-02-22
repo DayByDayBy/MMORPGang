@@ -4,6 +4,7 @@ import { MIN_PLAYERS, MAX_PLAYERS, PLAYER_COLORS } from "shared";
 import type { GameMode } from "shared";
 import { useGame } from "@/context/GameContext";
 import { Button } from "@/components/Button";
+import { GameModeToggle } from "@/components/GameModeToggle";
 
 export const LocalPage = () => {
   const navigate = useNavigate();
@@ -24,33 +25,7 @@ export const LocalPage = () => {
         <p className="text-text-muted text-sm mb-6">Play against bots</p>
 
         <form onSubmit={handleStart} className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2 text-neutral-400 text-left">
-            Game Mode
-            <div className="flex">
-              <button
-                type="button"
-                className={`flex-1 px-4 py-2 border border-border text-sm cursor-pointer ${
-                  mode === "classic"
-                    ? "bg-white/15 text-white border-white/30"
-                    : "bg-surface-elevated text-text-muted"
-                }`}
-                onClick={() => setMode("classic")}
-              >
-                Classic
-              </button>
-              <button
-                type="button"
-                className={`flex-1 px-4 py-2 border border-border text-sm cursor-pointer ${
-                  mode === "goals"
-                    ? "bg-white/15 text-white border-white/30"
-                    : "bg-surface-elevated text-text-muted"
-                }`}
-                onClick={() => setMode("goals")}
-              >
-                Goals
-              </button>
-            </div>
-          </div>
+          <GameModeToggle value={mode} onChange={setMode} />
 
           <label className="flex flex-col gap-2 text-neutral-400 text-left">
             Players: {playerCount}
