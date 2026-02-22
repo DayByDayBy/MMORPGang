@@ -82,8 +82,9 @@ export class ClassicPaddle extends Container {
     this.serverPosition_t = serverPosition;
   }
 
-  public interpolate() {
-    this.position_t += (this.serverPosition_t - this.position_t) * 0.5;
+  public interpolate(dt: number) {
+    const t = 1 - Math.exp(-12 * dt);
+    this.position_t += (this.serverPosition_t - this.position_t) * t;
     this.updatePosition();
   }
 }

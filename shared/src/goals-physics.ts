@@ -1,5 +1,8 @@
-import type { Vector2 } from "./types.js";
+import type { Vector2, BallState } from "./types.js";
 import { BALL_RADIUS } from "./constants.js";
+
+/** @deprecated Use BallState from types.ts instead */
+export type GoalsBallState = BallState;
 
 export function angleDiff(a: number, b: number): number {
   let d = a - b;
@@ -19,19 +22,12 @@ function reflect(vel: Vector2, normal: Vector2): Vector2 {
   return { x: vel.x - 2 * dot * nx, y: vel.y - 2 * dot * ny };
 }
 
-export interface GoalsBallState {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-}
-
 /**
  * Bounce ball off the circular arena wall.
  * Returns true if a bounce occurred.
  */
 export function bounceOffCircularWall(
-  ball: GoalsBallState,
+  ball: BallState,
   arenaRadius: number,
   ballRadius: number = BALL_RADIUS,
 ): boolean {
@@ -55,7 +51,7 @@ export function bounceOffCircularWall(
  * Returns true if reflected (save).
  */
 export function checkGoalsPaddleCollision(
-  ball: GoalsBallState,
+  ball: BallState,
   paddleAngle: number,
   paddleArc: number,
   goalX: number,
@@ -98,7 +94,7 @@ export function checkGoalsPaddleCollision(
  * Returns true if scored (life lost).
  */
 export function checkGoalsGoalCollision(
-  ball: GoalsBallState,
+  ball: BallState,
   goalX: number,
   goalY: number,
   goalRadius: number,

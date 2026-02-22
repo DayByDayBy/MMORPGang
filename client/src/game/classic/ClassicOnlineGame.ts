@@ -1,4 +1,4 @@
-import { Application, Container } from "pixi.js";
+import { Application, Container, Ticker } from "pixi.js";
 import { CLASSIC_ARENA_RADIUS, CLASSIC_PADDLE_SPEED } from "shared";
 import type { ClassicGameState, ClassicPlayerState } from "shared";
 import type { Room } from "@colyseus/sdk";
@@ -160,13 +160,14 @@ export class ClassicOnlineGame {
   private onKeyDown = (e: KeyboardEvent) => this.keys.add(e.key.toLowerCase());
   private onKeyUp = (e: KeyboardEvent) => this.keys.delete(e.key.toLowerCase());
 
-  private renderLoop = () => {
+  private renderLoop = (ticker: Ticker) => {
     if (this.destroyed) return;
-    this.ball.interpolate();
+    const dt = ticker.deltaMS / 1000;
+    this.ball.interpolate(dt);
     
     for (const [sessionId, rp] of this.players) {
       if (sessionId !== this.room.sessionId) {
-        rp.paddle.interpolate();
+        rp.paddle.interpolate(dt);
       }
     }
     

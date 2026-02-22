@@ -1,6 +1,9 @@
 import { Graphics, Container } from "pixi.js";
-import { BALL_RADIUS, BALL_SPEED, CLASSIC_MAX_BALL_SPEED, GOALS_BALL_INITIAL_SPEED_MULTIPLIER, GOALS_BALL_ACCELERATION, reflectVelocity, clampSpeed } from "shared";
-import type { Vector2 } from "shared";
+import { BALL_RADIUS, BALL_SPEED, CLASSIC_MAX_BALL_SPEED, reflectVelocity, clampSpeed } from "shared";
+import type { Vector2, BallState } from "shared";
+
+const SNAP_DIST_SQ = 900; // 30px — snap instead of lerp when correction is this large
+const LERP_RATE = 12; // higher = snappier tracking of server position
 
 export class Ball extends Container {
   public velocity: Vector2;
@@ -8,6 +11,8 @@ export class Ball extends Container {
   private gfx = new Graphics();
   private serverX = 0;
   private serverY = 0;
+  private serverVx = 0;
+  private serverVy = 0;
   private currentSpeed = BALL_SPEED;
   private acceleration = 0;
   private maxSpeed = BALL_SPEED;
@@ -67,13 +72,36 @@ export class Ball extends Container {
     this.velocity.y = (target.y / dist) * this.currentSpeed;
   }
 
-  public syncState(serverBall: { x: number; y: number }) {
+  /** Called when a new server state patch arrives. */
+  public syncState(serverBall: BallState) {
     this.serverX = serverBall.x;
     this.serverY = serverBall.y;
+    this.serverVx = serverBall.vx;
+    this.serverVy = serverBall.vy;
   }
 
-  public interpolate() {
-    this.x += (this.serverX - this.x) * 0.5;
-    this.y += (this.serverY - this.y) * 0.5;
+  /**
+   * Called every render frame. Extrapolates the ball along its velocity
+   * and smoothly corrects toward the server position.
+   * @param dt frame delta in seconds (e.g. ticker.deltaMS / 1000)
+   */
+  public interpolate(dt: number) {
+    // Extrapolate server position forward by velocity so the ball
+    // keeps moving between patches instead of freezing
+    this.serverX += this.serverVx * dt * 60;
+    this.serverY += this.serverVy * dt * 60;
+
+    const dx = this.serverX - this.x;
+    const dy = this.serverY - this.y;
+    const distSq = dx * dx + dy * dy;
+
+    if (distSq > SNAP_DIST_SQ) {
+      this.x = this.serverX;
+      this.y = this.serverY;
+    } else {
+      const t = 1 - Math.exp(-LERP_RATE * dt);
+      this.x += dx * t;
+      this.y += dy * t;
+    }
   }
 }

@@ -19,6 +19,8 @@ export interface Edge {
 export interface BallState {
   x: number;
   y: number;
+  vx: number;
+  vy: number;
 }
 
 // --- Base (shared by both modes) ---

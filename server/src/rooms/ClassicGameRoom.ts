@@ -84,6 +84,9 @@ export class ClassicGameRoom extends BaseGameRoom {
       this.resetBall();
     }
 
+    this.state.ball.vx = this.ballVx;
+    this.state.ball.vy = this.ballVy;
+
     this.state.players.forEach((player, id) => {
       this.prevPaddlePositions.set(id, player.paddlePosition);
     });

@@ -1,4 +1,4 @@
-import { Application, Container } from "pixi.js";
+import { Application, Container, Ticker } from "pixi.js";
 import {
   GOALS_ARENA_RADIUS,
   GOALS_GOAL_RING_RADIUS,
@@ -211,9 +211,10 @@ export class GoalsOnlineGame {
     }
   }
 
-  private renderLoop = () => {
+  private renderLoop = (ticker: Ticker) => {
     if (this.destroyed) return;
-    this.ball.interpolate();
+    const dt = ticker.deltaMS / 1000;
+    this.ball.interpolate(dt);
   };
 
   private emitHud() {

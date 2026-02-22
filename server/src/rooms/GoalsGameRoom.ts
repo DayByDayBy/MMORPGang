@@ -18,7 +18,7 @@ import {
   GOALS_MAX_BALL_SPEED,
   GOALS_LIVES,
 } from "shared";
-import type { GoalsBallState } from "shared";
+import type { BallState } from "shared";
 
 export class GoalsGameRoom extends BaseGameRoom {
   state = new GoalsGameRoomState();
@@ -83,7 +83,7 @@ export class GoalsGameRoom extends BaseGameRoom {
     this.state.ball.x += this.ballVx;
     this.state.ball.y += this.ballVy;
 
-    const ballState: GoalsBallState = {
+    const ballState: BallState = {
       x: this.state.ball.x,
       y: this.state.ball.y,
       vx: this.ballVx,
@@ -127,6 +127,8 @@ export class GoalsGameRoom extends BaseGameRoom {
     this.ballVy = clamped.y;
     this.state.ball.x = ballState.x;
     this.state.ball.y = ballState.y;
+    this.state.ball.vx = this.ballVx;
+    this.state.ball.vy = this.ballVy;
   }
 
   private applyInputs() {
